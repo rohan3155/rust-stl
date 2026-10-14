@@ -1,23 +1,35 @@
-use rust_stl::collections::vector::VecExt;
+use rust_stl::collections::vector::MyVec;
 
 fn main() {
-    // let mut numbers = vec![10, 20, 30, 20];
+    let mut numbers = MyVec::new();
 
-    // let index = numbers.find_index(|n| *n > 15);
-    // let count = numbers.count_matches(|n| *n == 20);
-    // let removed = numbers.remove_first(&20);
-    // let indices = numbers.indices_of(|n| *n > 15);
+    numbers.push(10);
+    numbers.push(20);
+    numbers.push(30);
+    numbers.push(20);
 
-    // println!("{index:?} {count} {removed} {indices:?}");
-    let numbers = vec![10, 20, 30, 20];
+    println!("Length: {}", numbers.len());
+    println!("Capacity: {}", numbers.capacity());
+    println!("Is empty: {}", numbers.is_empty());
 
-    let indices: Vec<usize> = numbers
-        .iter()
-        .enumerate()
-        .filter_map(|(index, item)| {
-            if *item > 15 { Some(index) } else { None }
-        })
-        .collect();
+    println!("Element at index 1: {:?}", numbers.get(1));
 
-    println!("{indices:?}");
+    let index = numbers.find_index(|n| *n > 15);
+    println!("First matching index: {:?}", index);
+
+    let count = numbers.count_matches(|n| *n > 15);
+    println!("Matching elements: {}", count);
+
+    let indices = numbers.indices_of(|n| *n > 15);
+    println!("Matching indices: {:?}", indices.as_slice());
+
+    let removed = numbers.remove_first(&20);
+    println!("Removed first 20: {}", removed);
+
+    println!("After removal: {:?}", numbers.as_slice());
+
+    numbers.clear();
+
+    println!("After clear: {:?}", numbers.as_slice());
+    println!("Is empty: {}", numbers.is_empty());
 }
