@@ -1,4 +1,4 @@
-use std::alloc::{alloc, dealloc, handle_alloc_error, Layout};
+use std::alloc::{ alloc, dealloc, handle_alloc_error, Layout };
 use std::ptr;
 use std::slice;
 
@@ -89,26 +89,15 @@ impl<T> MyVec<T> {
         self.len += 1;
     }
 
-    pub fn find_index<F>(&self, mut predicate: F) -> Option<usize>
-    where
-        F: FnMut(&T) -> bool,
-    {
+    pub fn find_index<F>(&self, mut predicate: F) -> Option<usize> where F: FnMut(&T) -> bool {
         (0..self.len).find(|&index| predicate(unsafe { &*self.ptr.add(index) }))
     }
 
-    pub fn count_matches<F>(&self, mut predicate: F) -> usize
-    where
-        F: FnMut(&T) -> bool,
-    {
-        (0..self.len)
-            .filter(|&index| predicate(unsafe { &*self.ptr.add(index) }))
-            .count()
+    pub fn count_matches<F>(&self, mut predicate: F) -> usize where F: FnMut(&T) -> bool {
+        (0..self.len).filter(|&index| predicate(unsafe { &*self.ptr.add(index) })).count()
     }
 
-    pub fn remove_first(&mut self, value: &T) -> bool
-    where
-        T: PartialEq,
-    {
+    pub fn remove_first(&mut self, value: &T) -> bool where T: PartialEq {
         if let Some(index) = self.find_index(|item| item == value) {
             self.remove(index);
             true
@@ -122,20 +111,13 @@ impl<T> MyVec<T> {
 
         unsafe {
             let element = self.ptr.add(index).read();
-            ptr::copy(
-                self.ptr.add(index + 1),
-                self.ptr.add(index),
-                self.len - index - 1,
-            );
+            ptr::copy(self.ptr.add(index + 1), self.ptr.add(index), self.len - index - 1);
             self.len -= 1;
             element
         }
     }
 
-    pub fn indices_of<F>(&self, mut predicate: F) -> MyVec<usize>
-    where
-        F: FnMut(&T) -> bool,
-    {
+    pub fn indices_of<F>(&self, mut predicate: F) -> MyVec<usize> where F: FnMut(&T) -> bool {
         let mut indices = MyVec::new();
 
         for index in 0..self.len {
@@ -159,6 +141,39 @@ impl<T> MyVec<T> {
     pub fn as_slice(&self) -> &[T] {
         unsafe { slice::from_raw_parts(self.ptr, self.len) }
     }
+
+    pub fn first(&self) -> Option<&T> {
+        if self.len > 0 {
+            unsafe { Some(&*self.ptr) }
+        } else {
+            None
+        }
+    }
+
+    pub fn first_mut(&mut self) -> Option<&mut T> {
+        if self.len > 0 {
+            unsafe { Some(&mut *self.ptr) }
+        } else {
+            None
+        }
+    }
+
+    pub fn last(&self) -> Option<&T> {
+        if self.len > 0 {
+            unsafe { Some(&*self.ptr.add(self.len - 1)) }
+        } else {
+            None
+        }
+    }
+
+    pub fn last_mut(&mut self) -> Option<&mut T> {
+        if self.len > 0 {
+            unsafe { Some(&mut *self.ptr.add(self.len - 1)) }
+        } else {
+            None
+        }
+    }
+
 }
 
 impl<T> Default for MyVec<T> {
