@@ -474,6 +474,11 @@ impl<T> MyVec<T> {
         self.len = total_len;
         other.clear();
     }
+    pub fn extend(&mut self, iter: impl IntoIterator<Item = T>) {
+        for item in iter {
+            self.push(item);
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
