@@ -184,6 +184,14 @@ impl<T> MyVec<T> {
             None
         }
     }
+    pub fn swap(&mut self, index1: usize, index2: usize) {
+        assert!(index1 < self.len, "index1 out of bounds");
+        assert!(index2 < self.len, "index2 out of bounds");
+
+        unsafe {
+            std::ptr::swap(self.ptr.add(index1), self.ptr.add(index2));
+        }
+    }
 
     pub fn last_mut(&mut self) -> Option<&mut T> {
         if self.len > 0 {
@@ -191,6 +199,14 @@ impl<T> MyVec<T> {
         } else {
             None
         }
+    }
+    pub fn swap_remove(&mut self, index: usize) -> Option<T> {
+        if index >= self.len {
+            return None;
+        }
+
+        self.swap(index, self.len - 1);
+        self.remove(self.len - 1).into()
     }
 }
 
