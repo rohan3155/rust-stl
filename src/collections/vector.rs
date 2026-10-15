@@ -230,6 +230,17 @@ impl<T> MyVec<T> {
             }
         }
     }
+
+    pub fn retain_mut<F>(&mut self, mut predicate: F) where F: FnMut(&mut T) -> bool {
+        let mut i = 0;
+        while i < self.len {
+            if !predicate(unsafe { &mut *self.ptr.add(i) }) {
+                self.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
