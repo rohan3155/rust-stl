@@ -251,7 +251,7 @@ impl<T> MyVec<T> {
             }
         }
     }
-    pub fn remove_all_by<F>(&mut self, mut predicate: F) where F: FnMut(&T) -> bool {
+    pub fn remove_where<F>(&mut self, mut predicate: F) where F: FnMut(&T) -> bool {
         let mut i = 0;
         while i < self.len {
             if predicate(unsafe { &*self.ptr.add(i) }) {
