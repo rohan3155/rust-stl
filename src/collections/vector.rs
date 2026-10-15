@@ -510,6 +510,21 @@ impl<T> MyVec<T> {
             }
         }
     }
+    pub fn split_off(&mut self, at: usize) -> MyVec<T> {
+        assert!(at <= self.len, "index out of bounds");
+
+        let mut new_vec = MyVec::new();
+        new_vec.reserve(self.len - at);
+
+        unsafe {
+            ptr::copy_nonoverlapping(self.ptr.add(at), new_vec.ptr, self.len - at);
+        }
+
+        new_vec.len = self.len - at;
+        self.len = at;
+
+        new_vec
+    }
 }
 
 impl<T> Default for MyVec<T> {
