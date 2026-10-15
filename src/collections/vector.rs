@@ -446,6 +446,20 @@ impl<T> MyVec<T> {
 
         Ok(())
     }
+    pub fn insert(&mut self, index: usize, value: T) {
+        assert!(index <= self.len, "index out of bounds");
+
+        if self.len == self.capacity {
+            self.grow();
+        }
+
+        unsafe {
+            ptr::copy(self.ptr.add(index), self.ptr.add(index + 1), self.len - index);
+            self.ptr.add(index).write(value);
+        }
+
+        self.len += 1;
+    }
 }
 
 impl<T> Default for MyVec<T> {
