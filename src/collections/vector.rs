@@ -498,6 +498,18 @@ impl<T> MyVec<T> {
             }
         }
     }
+    pub fn resize_with<F>(&mut self, new_len: usize, mut f: F) where F: FnMut() -> T {
+        if new_len > self.len {
+            self.reserve(new_len - self.len);
+            for _ in self.len..new_len {
+                self.push(f());
+            }
+        } else {
+            while self.len > new_len {
+                self.pop();
+            }
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
