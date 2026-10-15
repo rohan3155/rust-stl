@@ -302,6 +302,35 @@ impl<T> MyVec<T> {
             }
         }
     }
+    pub fn reserve(&mut self, additional: usize) {
+        let required_capacity = self.len + additional;
+
+        if required_capacity > self.capacity {
+            let new_capacity = required_capacity.max(self.capacity * 2);
+            let new_layout = Self::layout(new_capacity);
+
+            let new_ptr = unsafe {
+                let allocation = alloc(new_layout) as *mut T;
+
+                if allocation.is_null() {
+                    handle_alloc_error(new_layout);
+                }
+
+                if self.len > 0 {
+                    ptr::copy_nonoverlapping(self.ptr, allocation, self.len);
+                }
+
+                if self.capacity > 0 {
+                    dealloc(self.ptr as *mut u8, Self::layout(self.capacity));
+                }
+
+                allocation
+            };
+
+            self.ptr = new_ptr;
+            self.capacity = new_capacity;
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
