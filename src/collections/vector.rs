@@ -331,6 +331,32 @@ impl<T> MyVec<T> {
             self.capacity = new_capacity;
         }
     }
+    pub fn shrink_to_fit(&mut self) {
+        if self.len < self.capacity {
+            let new_layout = Self::layout(self.len);
+
+            let new_ptr = unsafe {
+                let allocation = alloc(new_layout) as *mut T;
+
+                if allocation.is_null() {
+                    handle_alloc_error(new_layout);
+                }
+
+                if self.len > 0 {
+                    ptr::copy_nonoverlapping(self.ptr, allocation, self.len);
+                }
+
+                if self.capacity > 0 {
+                    dealloc(self.ptr as *mut u8, Self::layout(self.capacity));
+                }
+
+                allocation
+            };
+
+            self.ptr = new_ptr;
+            self.capacity = self.len;
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
