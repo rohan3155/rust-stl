@@ -244,7 +244,7 @@ impl<T> MyVec<T> {
     pub fn remove_all(&mut self, value: T) where T: PartialEq {
         let mut i = 0;
         while i < self.len {
-            if unsafe { &*self.ptr.add(i) } == &value {
+            if (unsafe { &*self.ptr.add(i) }) == &value {
                 self.remove(i);
             } else {
                 i += 1;
@@ -265,6 +265,37 @@ impl<T> MyVec<T> {
         let mut i = 0;
         while i < self.len {
             if predicate(unsafe { &mut *self.ptr.add(i) }) {
+                self.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
+    pub fn remove_duplicates(&mut self) where T: PartialEq {
+        let mut i = 0;
+        while i < self.len {
+            let mut j = i + 1;
+            while j < self.len {
+                if (unsafe { &*self.ptr.add(i) }) == (unsafe { &*self.ptr.add(j) }) {
+                    self.remove(j);
+                } else {
+                    j += 1;
+                }
+            }
+            i += 1;
+        }
+    }
+    pub fn dedup(&mut self) where T: PartialEq {
+        if self.len < 2 {
+            return;
+        }
+
+        let mut i = 1;
+
+        while i < self.len {
+            let duplicate = unsafe { &*self.ptr.add(i - 1) == &*self.ptr.add(i) };
+
+            if duplicate {
                 self.remove(i);
             } else {
                 i += 1;
