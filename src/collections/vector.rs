@@ -241,6 +241,16 @@ impl<T> MyVec<T> {
             }
         }
     }
+    pub fn remove_all(&mut self, value: T) where T: PartialEq {
+        let mut i = 0;
+        while i < self.len {
+            if unsafe { &*self.ptr.add(i) } == &value {
+                self.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
