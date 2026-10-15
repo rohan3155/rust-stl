@@ -208,6 +208,18 @@ impl<T> MyVec<T> {
         self.swap(index, self.len - 1);
         self.remove(self.len - 1).into()
     }
+    pub fn truncate(&mut self, new_len: usize) {
+        if new_len >= self.len {
+            return;
+        }
+
+        while self.len > new_len {
+            self.len -= 1;
+            unsafe {
+                std::ptr::drop_in_place(self.ptr.add(self.len));
+            }
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
