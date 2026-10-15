@@ -460,6 +460,20 @@ impl<T> MyVec<T> {
 
         self.len += 1;
     }
+    pub fn append(&mut self, other: &mut MyVec<T>) {
+        let total_len = self.len + other.len;
+
+        if total_len > self.capacity {
+            self.reserve(total_len - self.len);
+        }
+
+        unsafe {
+            ptr::copy_nonoverlapping(other.ptr, self.ptr.add(self.len), other.len);
+        }
+
+        self.len = total_len;
+        other.clear();
+    }
 }
 
 impl<T> Default for MyVec<T> {
