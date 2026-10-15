@@ -37,6 +37,14 @@ impl<T> MyVec<T> {
         }
     }
 
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        if index < self.len {
+            unsafe { Some(&mut *self.ptr.add(index)) }
+        } else {
+            None
+        }
+    }
+
     fn layout(capacity: usize) -> Layout {
         Layout::array::<T>(capacity).expect("capacity overflow")
     }
