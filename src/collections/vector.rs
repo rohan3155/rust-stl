@@ -385,6 +385,67 @@ impl<T> MyVec<T> {
             self.capacity = required_capacity;
         }
     }
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), &'static str> {
+        let required_capacity = self.len + additional;
+
+        if required_capacity > self.capacity {
+            let new_capacity = required_capacity.max(self.capacity * 2);
+            let new_layout = Self::layout(new_capacity);
+
+            let new_ptr = unsafe {
+                let allocation = alloc(new_layout) as *mut T;
+
+                if allocation.is_null() {
+                    return Err("Memory allocation failed");
+                }
+
+                if self.len > 0 {
+                    ptr::copy_nonoverlapping(self.ptr, allocation, self.len);
+                }
+
+                if self.capacity > 0 {
+                    dealloc(self.ptr as *mut u8, Self::layout(self.capacity));
+                }
+
+                allocation
+            };
+
+            self.ptr = new_ptr;
+            self.capacity = new_capacity;
+        }
+
+        Ok(())
+    }
+    pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), &'static str> {
+        let required_capacity = self.len + additional;
+
+        if required_capacity > self.capacity {
+            let new_layout = Self::layout(required_capacity);
+
+            let new_ptr = unsafe {
+                let allocation = alloc(new_layout) as *mut T;
+
+                if allocation.is_null() {
+                    return Err("Memory allocation failed");
+                }
+
+                if self.len > 0 {
+                    ptr::copy_nonoverlapping(self.ptr, allocation, self.len);
+                }
+
+                if self.capacity > 0 {
+                    dealloc(self.ptr as *mut u8, Self::layout(self.capacity));
+                }
+
+                allocation
+            };
+
+            self.ptr = new_ptr;
+            self.capacity = required_capacity;
+        }
+
+        Ok(())
+    }
 }
 
 impl<T> Default for MyVec<T> {
