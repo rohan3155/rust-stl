@@ -486,6 +486,18 @@ impl<T> MyVec<T> {
             self.push(item.clone());
         }
     }
+    pub fn resize(&mut self, new_len: usize, value: T) where T: Clone {
+        if new_len > self.len {
+            self.reserve(new_len - self.len);
+            for _ in self.len..new_len {
+                self.push(value.clone());
+            }
+        } else {
+            while self.len > new_len {
+                self.pop();
+            }
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
