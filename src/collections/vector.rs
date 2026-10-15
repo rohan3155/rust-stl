@@ -479,6 +479,13 @@ impl<T> MyVec<T> {
             self.push(item);
         }
     }
+    pub fn extend_from_slice(&mut self, slice: &[T]) where T: Clone {
+        self.reserve(slice.len());
+
+        for item in slice {
+            self.push(item.clone());
+        }
+    }
 }
 
 impl<T> Default for MyVec<T> {
