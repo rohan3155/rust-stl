@@ -97,6 +97,14 @@ impl<T> MyVec<T> {
         self.len += 1;
     }
 
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+
+        Some(self.remove(self.len - 1))
+    }
+
     pub fn find_index<F>(&self, mut predicate: F) -> Option<usize> where F: FnMut(&T) -> bool {
         (0..self.len).find(|&index| predicate(unsafe { &*self.ptr.add(index) }))
     }
@@ -149,6 +157,9 @@ impl<T> MyVec<T> {
     pub fn as_slice(&self) -> &[T] {
         unsafe { slice::from_raw_parts(self.ptr, self.len) }
     }
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+    }
 
     pub fn first(&self) -> Option<&T> {
         if self.len > 0 {
@@ -181,7 +192,6 @@ impl<T> MyVec<T> {
             None
         }
     }
-
 }
 
 impl<T> Default for MyVec<T> {
