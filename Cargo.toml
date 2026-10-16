@@ -15,3 +15,10 @@ categories = ["data-structures", "algorithms"]
 # The crate is intentionally dependency-free. Anything added here needs a clear
 # justification in the pull request that adds it.
 [dependencies]
+
+# The benchmark is a hand-rolled, dependency-free harness rather than a
+# libtest/criterion benchmark, so the default harness is disabled. See
+# `benches/vector.rs` for what it does and does not claim.
+[[bench]]
+name = "vector"
+harness = false
