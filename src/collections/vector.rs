@@ -83,6 +83,15 @@ impl<T> MyVec<T> {
         Layout::array::<T>(capacity).expect("capacity overflow")
     }
 
+    /// Computes the layout for `capacity` elements.
+    ///
+    /// Returns an error when `capacity * size_of::<T>()` overflows `isize`,
+    /// which is the point at which a slice of that many elements could not
+    /// exist and the allocation request is for a guaranteed-impossible size.
+    fn try_layout(capacity: usize) -> Result<Layout, &'static str> {
+        Layout::array::<T>(capacity).map_err(|_| "capacity overflow")
+    }
+
     /// Allocates uninitialized storage for `capacity` elements.
     ///
     /// # Panics
