@@ -545,6 +545,18 @@ impl<T> MyVec<T> {
             marker: std::marker::PhantomData,
         }
     }
+    pub fn reverse(&mut self){
+        let mut left = 0;
+        let mut right = self.len - 1;
+
+        while left < right {
+            self.swap(left, right);
+            left += 1;
+            right -= 1;
+        }
+    }
+
+    
 }
 
 pub struct MyVecIter<'a, T> {
