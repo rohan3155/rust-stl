@@ -560,6 +560,11 @@ impl<T> MyVec<T> {
         let slice = self.as_mut_slice();
         slice.sort();
     }
+    pub fn sort_by<F>(&mut self, compare: F) where F: FnMut(&T, &T) -> std::cmp::Ordering {
+        let slice = self.as_mut_slice();
+        slice.sort_by(compare);
+    }
+    
 }
 
 pub struct MyVecIter<'a, T> {
