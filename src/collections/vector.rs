@@ -1113,24 +1113,26 @@ impl<T> Drop for Vector<T> {
     }
 }
 
-/// Implementing Index trait for Vector
-impl<T> Index<usize> for Vector<T> {
-    type Output = T;
+/// Indexing delegates to slice indexing, which gives the same `usize`, range and
+/// step-range index types as `std::vec::Vec` and keeps the bounds check in one
+/// place.
+impl<T, I> Index<I> for Vector<T>
+where
+    I: std::slice::SliceIndex<[T]>,
+{
+    type Output = I::Output;
 
-    fn index(&self, index: usize) -> &Self::Output {
-        assert!(index < self.len, "index out of bounds");
-
-        // SAFETY: `index < len`, and those slots are initialized.
-        unsafe { &*self.ptr.as_ptr().add(index) }
+    fn index(&self, index: I) -> &Self::Output {
+        &self.as_slice()[index]
     }
 }
 
-impl<T> IndexMut<usize> for Vector<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        assert!(index < self.len, "index out of bounds");
-
-        // SAFETY: `index < len`, and `&mut self` guarantees unique access.
-        unsafe { &mut *self.ptr.as_ptr().add(index) }
+impl<T, I> IndexMut<I> for Vector<T>
+where
+    I: std::slice::SliceIndex<[T]>,
+{
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        &mut self.as_mut_slice()[index]
     }
 }
 
