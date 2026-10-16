@@ -148,11 +148,22 @@ impl<T> MyVec<T> {
             return;
         }
 
+        // `checked_add`/`checked_mul` keep a pathological request from wrapping
+        // around to a small capacity and silently under-allocating.
+        let required = self
+            .len
+            .checked_add(1)
+            .expect("capacity overflow: vector length exceeded");
+
         let new_capacity = if self.capacity == 0 {
             4
         } else {
-            self.capacity.checked_mul(2).expect("capacity overflow")
+            self.capacity
+                .checked_mul(2)
+                .expect("capacity overflow: vector capacity exceeded")
         };
+
+        let new_capacity = new_capacity.max(required);
 
         // SAFETY: `new_capacity > 0` and `T` is not zero-sized here.
         let new_ptr = unsafe { Self::allocate(new_capacity) };
@@ -476,7 +487,7 @@ impl<T> MyVec<T> {
             return Ok(());
         }
 
-        let new_layout = Self::layout(new_capacity);
+        let new_layout = Self::try_layout(new_capacity)?;
         let new_ptr = unsafe { alloc(new_layout) } as *mut T;
 
         if new_ptr.is_null() {
@@ -534,17 +545,24 @@ impl<T> MyVec<T> {
     }
 
     /// Validates `len + additional` and returns the minimum required capacity.
-    fn required_capacity(&self, additional: usize) -> usize {
-        self.len + additional
+    fn required_capacity(&self, additional: usize) -> Result<usize, &'static str> {
+        self.len
+            .checked_add(additional)
+            .ok_or("capacity overflow")
     }
 
     /// The amortized target capacity used by `reserve` / `try_reserve`.
     fn amortized_capacity(&self, required: usize) -> usize {
-        required.max(self.capacity * 2).max(4)
+        // Doubling keeps `push` amortized O(1). `saturating_mul` avoids
+        // wrapping here: an over-large target is rejected later by the layout
+        // check rather than silently rounded down.
+        required.max(self.capacity.saturating_mul(2)).max(4)
     }
 
     pub fn reserve(&mut self, additional: usize) {
-        let required = self.required_capacity(additional);
+        let required = self
+            .required_capacity(additional)
+            .expect("capacity overflow: vector length exceeded");
 
         self.reallocate(self.amortized_capacity(required));
     }
@@ -586,20 +604,22 @@ impl<T> MyVec<T> {
     }
 
     pub fn reserve_exact(&mut self, additional: usize) {
-        let required = self.required_capacity(additional);
+        let required = self
+            .required_capacity(additional)
+            .expect("capacity overflow: vector length exceeded");
 
         self.reallocate(required);
     }
 
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), &'static str> {
-        let required = self.required_capacity(additional);
+        let required = self.required_capacity(additional)?;
         let target = self.amortized_capacity(required);
 
         self.try_reallocate(target)
     }
 
     pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), &'static str> {
-        let required = self.required_capacity(additional);
+        let required = self.required_capacity(additional)?;
 
         self.try_reallocate(required)
     }
