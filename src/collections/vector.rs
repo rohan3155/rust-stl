@@ -592,6 +592,9 @@ impl<T> MyVec<T> {
     pub fn split_at(&self, mid: usize) -> (&[T], &[T]) {
         self.as_slice().split_at(mid)
     }
+    pub fn windows(&self, size: usize) -> std::slice::Windows<'_, T> {
+        self.as_slice().windows(size)
+    }
 }
 
 pub struct MyVecIter<'a, T> {
