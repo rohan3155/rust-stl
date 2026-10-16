@@ -254,8 +254,23 @@ Complexity is documented per method in the API docs. The summary for
 | `binary_search` | O(log n) | O(log n) |
 | `retain` / `dedup` / `remove_where` | O(n) | O(n²) |
 
-These are algorithmic bounds, not measured results. No benchmarks are included
-and no claims are made about constant factors relative to `std::vec::Vec`.
+These are algorithmic bounds, not measured results, and no claims are made about
+constant factors relative to `std::vec::Vec`.
+
+### Benchmarking
+
+The repository ships a small, dependency-free micro-benchmark that runs a few
+representative operations against `std::vec::Vec` side by side:
+
+```sh
+cargo bench --bench vector
+```
+
+It prints the best of a handful of repetitions for each operation. It is a
+sanity harness for spotting gross regressions while working on the
+implementation — **not** a rigorous benchmark. There is no statistical analysis
+or load isolation, so its numbers are not guarantees and are deliberately not
+quoted in this README.
 
 ## Testing
 
@@ -288,6 +303,9 @@ the default checks here because `cargo miri` requires a nightly toolchain:
 rustup +nightly component add miri
 cargo +nightly miri test
 ```
+
+CI runs the same checks on every push to `main` and on every pull request, plus a
+build against the declared MSRV (see `.github/workflows/ci.yml`).
 
 ## Documentation
 
