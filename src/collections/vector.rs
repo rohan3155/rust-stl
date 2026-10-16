@@ -545,7 +545,7 @@ impl<T> MyVec<T> {
             marker: std::marker::PhantomData,
         }
     }
-    pub fn reverse(&mut self){
+    pub fn reverse(&mut self) {
         let mut left = 0;
         let mut right = self.len - 1;
 
@@ -570,7 +570,12 @@ impl<T> MyVec<T> {
     pub fn end(&self) -> *const T {
         unsafe { self.ptr.add(self.len) }
     }
+    pub fn sort_range(&mut self, start: usize, end: usize) where T: Ord {
+        assert!(start <= end, "invalid range");
+        assert!(end <= self.len, "index out of bounds");
 
+        self.as_mut_slice()[start..end].sort();
+    }
 }
 
 pub struct MyVecIter<'a, T> {
@@ -770,7 +775,6 @@ impl<T> PartialEq for MyVec<T> where T: PartialEq {
 }
 
 impl<T> Eq for MyVec<T> where T: Eq {}
-
 
 impl<T> Extend<T> for MyVec<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
