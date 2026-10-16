@@ -556,7 +556,10 @@ impl<T> MyVec<T> {
         }
     }
 
-    
+    pub fn sort(&mut self) where T: Ord {
+        let slice = self.as_mut_slice();
+        slice.sort();
+    }
 }
 
 pub struct MyVecIter<'a, T> {
