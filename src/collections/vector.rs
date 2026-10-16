@@ -714,7 +714,7 @@ impl<T> Debug for MyVec<T> where T: Debug {
         f.debug_list().entries(self.iter()).finish()
     }
 }
-impl<T>  Clone for MyVec<T> where T: Clone {
+impl<T> Clone for MyVec<T> where T: Clone {
     fn clone(&self) -> Self {
         let mut new_vec = MyVec::new();
         new_vec.reserve(self.len);
@@ -726,3 +726,21 @@ impl<T>  Clone for MyVec<T> where T: Clone {
         new_vec
     }
 }
+
+impl<T> PartialEq for MyVec<T> where T: PartialEq {
+    fn eq(&self, other: &Self) -> bool {
+        if self.len != other.len {
+            return false;
+        }
+
+        for i in 0..self.len {
+            if self[i] != other[i] {
+                return false;
+            }
+        }
+
+        true
+    }
+}
+
+impl<T> Eq for MyVec<T> where T: Eq {}
