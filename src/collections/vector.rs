@@ -576,6 +576,7 @@ impl<T> MyVec<T> {
 
         self.as_mut_slice()[start..end].sort();
     }
+    
 }
 
 pub struct MyVecIter<'a, T> {
