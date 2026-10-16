@@ -595,6 +595,9 @@ impl<T> MyVec<T> {
     pub fn windows(&self, size: usize) -> std::slice::Windows<'_, T> {
         self.as_slice().windows(size)
     }
+    pub fn chunks(&self, size: usize) -> std::slice::Chunks<'_, T> {
+        self.as_slice().chunks(size)
+    }
 }
 
 pub struct MyVecIter<'a, T> {
