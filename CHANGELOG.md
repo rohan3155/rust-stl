@@ -110,6 +110,9 @@ section is worth reading in full.
   worst case is O(n²).
 * The API is a subset of `std::vec::Vec`; `with_capacity`, `drain`, `splice` and
   fallible range indexing are not implemented.
+* `Clone` (and other bulk operations) apply `clone()` element by element and do
+  not specialise for `T: Copy` the way `Vec` does, so cloning a vector of `Copy`
+  types is slower. Correct, just not `memcpy`-optimised.
 * The crate is not `no_std` compatible.
 * No performance claims are made, and the micro-benchmark is not statistically
   rigorous.
