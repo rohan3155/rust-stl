@@ -1,12 +1,12 @@
-use std::alloc::{ alloc, dealloc, handle_alloc_error, Layout };
+use std::alloc::{Layout, alloc, dealloc, handle_alloc_error};
+use std::cmp::{Eq, PartialEq};
+use std::fmt::Debug;
+use std::iter::FusedIterator;
+use std::iter::{Extend, FromIterator};
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 use std::ptr;
 use std::ptr::NonNull;
 use std::slice;
-use std::iter::FusedIterator;
-use std::ops::{ Deref, DerefMut, Index, IndexMut };
-use std::fmt::Debug;
-use std::iter::{ Extend, FromIterator };
-use std::cmp::{ PartialEq, Eq };
 pub struct Vector<T> {
     /// Pointer to the start of the allocation.
     ///
@@ -204,18 +204,26 @@ impl<T> Vector<T> {
         Some(self.remove(self.len - 1))
     }
 
-    pub fn find_index<F>(&self, mut predicate: F) -> Option<usize> where F: FnMut(&T) -> bool {
-        (0..self.len)
-            .find(|&index| predicate(unsafe { &*self.ptr.as_ptr().add(index) }))
+    pub fn find_index<F>(&self, mut predicate: F) -> Option<usize>
+    where
+        F: FnMut(&T) -> bool,
+    {
+        (0..self.len).find(|&index| predicate(unsafe { &*self.ptr.as_ptr().add(index) }))
     }
 
-    pub fn count_matches<F>(&self, mut predicate: F) -> usize where F: FnMut(&T) -> bool {
+    pub fn count_matches<F>(&self, mut predicate: F) -> usize
+    where
+        F: FnMut(&T) -> bool,
+    {
         (0..self.len)
             .filter(|&index| predicate(unsafe { &*self.ptr.as_ptr().add(index) }))
             .count()
     }
 
-    pub fn remove_first(&mut self, value: &T) -> bool where T: PartialEq {
+    pub fn remove_first(&mut self, value: &T) -> bool
+    where
+        T: PartialEq,
+    {
         if let Some(index) = self.find_index(|item| item == value) {
             self.remove(index);
             true
@@ -243,7 +251,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn indices_of<F>(&self, mut predicate: F) -> Vector<usize> where F: FnMut(&T) -> bool {
+    pub fn indices_of<F>(&self, mut predicate: F) -> Vector<usize>
+    where
+        F: FnMut(&T) -> bool,
+    {
         let mut indices = Vector::new();
 
         for index in 0..self.len {
@@ -366,7 +377,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn retain<F>(&mut self, mut predicate: F) where F: FnMut(&T) -> bool {
+    pub fn retain<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
         let mut i = 0;
         while i < self.len {
             // SAFETY: `i < len` and slot `i` is initialized.
@@ -381,7 +395,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn retain_mut<F>(&mut self, mut predicate: F) where F: FnMut(&mut T) -> bool {
+    pub fn retain_mut<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&mut T) -> bool,
+    {
         let mut i = 0;
         while i < self.len {
             // SAFETY: `i < len`, slot `i` is initialized, and the returned
@@ -394,7 +411,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn remove_all(&mut self, value: T) where T: PartialEq {
+    pub fn remove_all(&mut self, value: T)
+    where
+        T: PartialEq,
+    {
         let mut i = 0;
         while i < self.len {
             // SAFETY: `i < len` and slot `i` is initialized.
@@ -406,7 +426,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn remove_where<F>(&mut self, mut predicate: F) where F: FnMut(&T) -> bool {
+    pub fn remove_where<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
         let mut i = 0;
         while i < self.len {
             // SAFETY: `i < len` and slot `i` is initialized.
@@ -418,7 +441,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn remove_where_mut<F>(&mut self, mut predicate: F) where F: FnMut(&mut T) -> bool {
+    pub fn remove_where_mut<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&mut T) -> bool,
+    {
         let mut i = 0;
         while i < self.len {
             // SAFETY: `i < len`, slot `i` is initialized, and each borrow ends
@@ -431,7 +457,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn remove_duplicates(&mut self) where T: PartialEq {
+    pub fn remove_duplicates(&mut self)
+    where
+        T: PartialEq,
+    {
         let mut i = 0;
         while i < self.len {
             let mut j = i + 1;
@@ -451,7 +480,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn dedup(&mut self) where T: PartialEq {
+    pub fn dedup(&mut self)
+    where
+        T: PartialEq,
+    {
         if self.len < 2 {
             return;
         }
@@ -501,12 +533,13 @@ impl<T> Vector<T> {
             ptr::copy_nonoverlapping(self.ptr.as_ptr(), new_ptr, self.len);
         }
 
-        // SAFETY: the old pointer was produced by `allocate`/a previous
-        // `try_reallocate` with exactly `Layout::array::<T>(self.capacity)`,
-        // which is what `deallocate` frees.
-        unsafe {
-            dealloc(self.ptr.as_ptr() as *mut u8, Self::layout(self.capacity));
-        }
+        // SAFETY: `reallocate` freed the same pointer, and `try_reallocate` is
+        // called with `new_capacity > self.capacity`, so a real block exists.
+        // Delegating to `deallocate` is required: it skips the
+        // never-allocated (`capacity == 0`) and zero-sized cases, where calling
+        // `dealloc` directly would pass a zero-sized layout — undefined
+        // behaviour that `dealloc`'s precondition check turns into an abort.
+        Self::deallocate(self.ptr, self.capacity);
 
         // SAFETY: the null check above guarantees `new_ptr` is non-null, and
         // `alloc` returns a pointer aligned for `Layout::array::<T>`, hence `T`.
@@ -546,12 +579,14 @@ impl<T> Vector<T> {
 
     /// Validates `len + additional` and returns the minimum required capacity.
     fn required_capacity(&self, additional: usize) -> Result<usize, &'static str> {
-        self.len
-            .checked_add(additional)
-            .ok_or("capacity overflow")
+        self.len.checked_add(additional).ok_or("capacity overflow")
     }
 
     /// The amortized target capacity used by `reserve` / `try_reserve`.
+    ///
+    /// Only meaningful when `required > self.capacity`; callers must check that
+    /// first, otherwise a doubling of the current capacity could trigger a
+    /// pointless reallocation for a request that already fits.
     fn amortized_capacity(&self, required: usize) -> usize {
         // Doubling keeps `push` amortized O(1). `saturating_mul` avoids
         // wrapping here: an over-large target is rejected later by the layout
@@ -564,7 +599,11 @@ impl<T> Vector<T> {
             .required_capacity(additional)
             .expect("capacity overflow: vector length exceeded");
 
-        self.reallocate(self.amortized_capacity(required));
+        // `reserve(0)` (or any request that already fits) must not grow the
+        // vector: reporting a larger capacity would be a surprising allocation.
+        if required > self.capacity {
+            self.reallocate(self.amortized_capacity(required));
+        }
     }
 
     pub fn shrink_to_fit(&mut self) {
@@ -613,9 +652,13 @@ impl<T> Vector<T> {
 
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), &'static str> {
         let required = self.required_capacity(additional)?;
-        let target = self.amortized_capacity(required);
 
-        self.try_reallocate(target)
+        if required > self.capacity {
+            let target = self.amortized_capacity(required);
+            self.try_reallocate(target)?;
+        }
+
+        Ok(())
     }
 
     pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), &'static str> {
@@ -668,7 +711,11 @@ impl<T> Vector<T> {
         // allocation cannot alias `self`'s, making the regions disjoint (the
         // `len == 0` case leaves two zero-sized ranges, which is fine).
         unsafe {
-            ptr::copy_nonoverlapping(other.ptr.as_ptr(), self.ptr.as_ptr().add(self.len), other_len);
+            ptr::copy_nonoverlapping(
+                other.ptr.as_ptr(),
+                self.ptr.as_ptr().add(self.len),
+                other_len,
+            );
         }
 
         // Ownership of the copied values has moved to `self`. `other` must be
@@ -687,7 +734,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn extend_from_slice(&mut self, slice: &[T]) where T: Clone {
+    pub fn extend_from_slice(&mut self, slice: &[T])
+    where
+        T: Clone,
+    {
         self.reserve(slice.len());
 
         for item in slice {
@@ -695,7 +745,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn resize(&mut self, new_len: usize, value: T) where T: Clone {
+    pub fn resize(&mut self, new_len: usize, value: T)
+    where
+        T: Clone,
+    {
         if new_len > self.len {
             self.reserve(new_len - self.len);
             for _ in self.len..new_len {
@@ -708,7 +761,10 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn resize_with<F>(&mut self, new_len: usize, mut f: F) where F: FnMut() -> T {
+    pub fn resize_with<F>(&mut self, new_len: usize, mut f: F)
+    where
+        F: FnMut() -> T,
+    {
         if new_len > self.len {
             self.reserve(new_len - self.len);
             for _ in self.len..new_len {
@@ -778,11 +834,17 @@ impl<T> Vector<T> {
         }
     }
 
-    pub fn sort(&mut self) where T: Ord {
+    pub fn sort(&mut self)
+    where
+        T: Ord,
+    {
         let slice = self.as_mut_slice();
         slice.sort();
     }
-    pub fn sort_by<F>(&mut self, compare: F) where F: FnMut(&T, &T) -> std::cmp::Ordering {
+    pub fn sort_by<F>(&mut self, compare: F)
+    where
+        F: FnMut(&T, &T) -> std::cmp::Ordering,
+    {
         let slice = self.as_mut_slice();
         slice.sort_by(compare);
     }
@@ -799,13 +861,19 @@ impl<T> Vector<T> {
         // ZST the pointer never moves, which is also correct for `len` elements.
         unsafe { self.ptr.as_ptr().add(self.len) }
     }
-    pub fn sort_range(&mut self, start: usize, end: usize) where T: Ord {
+    pub fn sort_range(&mut self, start: usize, end: usize)
+    where
+        T: Ord,
+    {
         assert!(start <= end, "invalid range");
         assert!(end <= self.len, "index out of bounds");
 
         self.as_mut_slice()[start..end].sort();
     }
-    pub fn binary_search(&self, value: &T) -> Result<usize, usize> where T: Ord {
+    pub fn binary_search(&self, value: &T) -> Result<usize, usize>
+    where
+        T: Ord,
+    {
         self.as_slice().binary_search(value)
     }
     pub fn rotate_left(&mut self, mid: usize) {
@@ -828,13 +896,16 @@ impl<T> Vector<T> {
         self.as_slice().chunks(size)
     }
     pub fn binary_search_by<F>(&self, compare: F) -> Result<usize, usize>
-        where F: FnMut(&T) -> std::cmp::Ordering
+    where
+        F: FnMut(&T) -> std::cmp::Ordering,
     {
         self.as_slice().binary_search_by(compare)
     }
 
-    pub fn binary_search_by_key<B, F>(&self, key: &B,  f: F) -> Result<usize, usize>
-        where B: Ord, F: FnMut(&T) -> B
+    pub fn binary_search_by_key<B, F>(&self, key: &B, f: F) -> Result<usize, usize>
+    where
+        B: Ord,
+        F: FnMut(&T) -> B,
     {
         self.as_slice().binary_search_by_key(key, f)
     }
@@ -1063,12 +1134,18 @@ impl<T> IndexMut<usize> for Vector<T> {
     }
 }
 
-impl<T> Debug for Vector<T> where T: Debug {
+impl<T> Debug for Vector<T>
+where
+    T: Debug,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
-impl<T> Clone for Vector<T> where T: Clone {
+impl<T> Clone for Vector<T>
+where
+    T: Clone,
+{
     fn clone(&self) -> Self {
         let mut new_vec = Vector::new();
         new_vec.reserve(self.len);
@@ -1081,7 +1158,10 @@ impl<T> Clone for Vector<T> where T: Clone {
     }
 }
 
-impl<T> PartialEq for Vector<T> where T: PartialEq {
+impl<T> PartialEq for Vector<T>
+where
+    T: PartialEq,
+{
     fn eq(&self, other: &Self) -> bool {
         if self.len != other.len {
             return false;
