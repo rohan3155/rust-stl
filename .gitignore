@@ -1,1 +1,18 @@
+# Build output from Cargo.
 /target
+
+# Backup files rustfmt leaves behind when it refuses to overwrite.
+**/*.rs.bk
+
+# Documentation output, if generated outside `target/`.
+/doc
+
+# Editor and OS noise.
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Miri / sanitizer artefacts, if a run is interrupted.
+*.profraw
