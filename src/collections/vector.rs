@@ -744,3 +744,12 @@ impl<T> PartialEq for MyVec<T> where T: PartialEq {
 }
 
 impl<T> Eq for MyVec<T> where T: Eq {}
+
+
+impl<T> Extend<T> for MyVec<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for item in iter {
+            self.push(item);
+        }
+    }
+}
