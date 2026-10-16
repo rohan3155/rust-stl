@@ -917,28 +917,69 @@ impl<'a, T> IntoIterator for &'a mut MyVec<T> {
     }
 }
 
+/// Owning iterator over a [`MyVec`].
+///
+/// Created by [`MyVec::into_iter`] (or, equivalently, `for value in vec`).
 pub struct MyVecIntoIter<T> {
-    vec: MyVec<T>,
-    index: usize,
+    /// Base of the allocation being drained. Still owned by this iterator.
+    ptr: NonNull<T>,
+    /// The half-open range of the allocation that is still initialized and has
+    /// not been yielded yet.
+    ///
+    /// This is the single source of truth for the iterator's state: elements
+    /// before `remaining.start` have been moved out and must not be touched
+    /// again, elements from `remaining.end` onwards were already moved out by
+    /// [`DoubleEndedIterator::next_back`], and `remaining` itself still holds
+    /// live values that this iterator owns.
+    remaining: std::ops::Range<usize>,
+    /// Capacity of the allocation, needed to release it with the exact layout
+    /// it was created with.
+    capacity: usize,
+    /// Marks the allocation as owned, so dropping the iterator knows it must
+    /// release it, and keeps `T`'s variance/drop-check behaviour correct.
+    marker: std::marker::PhantomData<T>,
 }
 
 impl<T> Iterator for MyVecIntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.vec.len {
+        if self.remaining.start >= self.remaining.end {
             return None;
         }
 
-        let item = unsafe { self.vec.ptr.add(self.index).read() };
+        let index = self.remaining.start;
+        // Advance first: if the value's destructor runs later and panics, the
+        // element must already be marked as consumed, or it would be dropped a
+        // second time by `Drop`.
+        self.remaining.start += 1;
 
-        self.index += 1;
-        Some(item)
+        // SAFETY: `index < remaining.end <= capacity`, so the slot is inside the
+        // allocation, and everything in `remaining` is still initialized.
+        // Advancing the range first means no other method will read the slot
+        // again, so producing the value by value is sound.
+        Some(unsafe { self.ptr.as_ptr().add(index).read() })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.vec.len - self.index;
+        let remaining = self.remaining.end - self.remaining.start;
         (remaining, Some(remaining))
+    }
+}
+
+impl<T> DoubleEndedIterator for MyVecIntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.remaining.start >= self.remaining.end {
+            return None;
+        }
+
+        self.remaining.end -= 1;
+        let index = self.remaining.end;
+
+        // SAFETY: `remaining.start <= index < remaining.end <= capacity`, so the
+        // slot is inside the allocation and still initialized. The range was
+        // shrunk before the read so the slot is never yielded twice.
+        Some(unsafe { self.ptr.as_ptr().add(index).read() })
     }
 }
 
@@ -946,22 +987,41 @@ impl<T> ExactSizeIterator for MyVecIntoIter<T> {}
 
 impl<T> FusedIterator for MyVecIntoIter<T> {}
 
+impl<T> Drop for MyVecIntoIter<T> {
+    fn drop(&mut self) {
+        // SAFETY: `remaining` is exactly the set of live, owned, not-yet-yielded
+        // elements, and it is always a sub-range of the allocation. Dropping
+        // them in place leaves no element un-dropped and none dropped twice;
+        // elements outside the range were already moved out of the iterator.
+        unsafe {
+            ptr::drop_in_place(ptr::slice_from_raw_parts_mut(
+                self.ptr.as_ptr().add(self.remaining.start),
+                self.remaining.end - self.remaining.start,
+            ));
+        }
+
+        // Release the allocation exactly once. `deallocate` is a no-op for a
+        // zero-sized `T` or a zero capacity, matching how the allocation was
+        // (not) created.
+        MyVec::<T>::deallocate(self.ptr, self.capacity);
+    }
+}
+
 impl<T> IntoIterator for MyVec<T> {
     type Item = T;
     type IntoIter = MyVecIntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        let vec = unsafe {
-            // Transfer ownership of the vector into the iterator.
-            // Prevent the original vector from being dropped here.
-            std::ptr::read(&self)
-        };
-
-        std::mem::forget(self);
+        // Wrapping in `ManuallyDrop` disables `MyVec`'s destructor, so its
+        // allocation and elements are transferred to the iterator without being
+        // freed or dropped here.
+        let vec = std::mem::ManuallyDrop::new(self);
 
         MyVecIntoIter {
-            vec,
-            index: 0,
+            ptr: vec.ptr,
+            remaining: 0..vec.len,
+            capacity: vec.capacity,
+            marker: std::marker::PhantomData,
         }
     }
 }
