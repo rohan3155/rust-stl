@@ -77,35 +77,28 @@ impl fmt::Debug for DropCounter {
     }
 }
 
-/// A zero-sized type that records its drops in a shared counter.
+/// A zero-sized type that records its drops in a process-wide counter.
 ///
-/// A ZST cannot store the `Arc` inline, so — like `std`'s ZST tests — the
-/// tracker has to live outside the value.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Zst;
-
-pub struct ZstTracker;
+/// A ZST cannot store the counter inline, so — like `std`'s own ZST tests — the
+/// tracker has to live outside the value. Exactly one test uses this type, so
+/// the shared counter cannot be disturbed by parallel tests.
+#[derive(Debug, PartialEq, Eq)]
+pub struct DropZst;
 
 static ZST_DROPS: AtomicUsize = AtomicUsize::new(0);
 
-impl ZstTracker {
-    /// The number of [`DropZst`] values dropped since the process started.
-    ///
-    /// Reading and mutating this counter is only meaningful while no other test
-    /// is dropping a `DropZst`, so exactly one test in the suite uses it.
-    pub fn count() -> usize {
-        ZST_DROPS.load(Ordering::SeqCst)
-    }
+/// The number of [`DropZst`] values dropped since the process started.
+///
+/// Only meaningful while no other test is dropping a `DropZst`.
+pub fn zst_drops() -> usize {
+    ZST_DROPS.load(Ordering::SeqCst)
 }
 
-impl Drop for ZstTracker {
+impl Drop for DropZst {
     fn drop(&mut self) {
         ZST_DROPS.fetch_add(1, Ordering::SeqCst);
     }
 }
-
-/// The zero-sized element type used by the ZST destructor test.
-pub type DropZst = ZstTracker;
 
 /// A cloneable element whose `Clone` panics on the `nth` clone.
 pub struct PanicOnClone {
@@ -116,11 +109,15 @@ pub struct PanicOnClone {
 }
 
 impl PanicOnClone {
-    pub fn new(id: i32, panic_at: usize, tracker: &DropTracker) -> Self {
+    /// Creates an element that panics on the `panic_at`-th clone.
+    ///
+    /// `clones` must be shared by every element of the vector under test,
+    /// otherwise each element would restart the count at zero.
+    pub fn new(id: i32, panic_at: usize, clones: &Arc<AtomicUsize>, tracker: &DropTracker) -> Self {
         Self {
             id,
             panic_at,
-            clones: Arc::new(AtomicUsize::new(0)),
+            clones: clones.clone(),
             tracker: tracker.clone(),
         }
     }

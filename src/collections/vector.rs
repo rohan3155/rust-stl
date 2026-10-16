@@ -1210,3 +1210,123 @@ impl<T> DerefMut for Vector<T> {
         self.as_mut_slice()
     }
 }
+
+/// Unit tests for the private invariants that the public API cannot reach.
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A zero-sized element type used to check the ZST special-casing.
+    #[derive(Debug, PartialEq, Eq)]
+    struct Marker;
+
+    #[test]
+    fn new_vector_is_unallocated_with_a_dangling_pointer() {
+        let vec: Vector<u32> = Vector::new();
+
+        assert_eq!(vec.len, 0);
+        assert_eq!(vec.capacity, 0);
+        // A never-allocated vector must still hold a non-null, aligned pointer.
+        // (`NonNull` already rules out null, so `dangling` is the strongest
+        // assertion available here.)
+        assert_eq!(vec.ptr, NonNull::dangling());
+    }
+
+    #[test]
+    fn is_zst_detects_zero_sized_types() {
+        assert!(Vector::<()>::is_zst());
+        assert!(Vector::<Marker>::is_zst());
+        assert!(!Vector::<u8>::is_zst());
+        assert!(!Vector::<u64>::is_zst());
+    }
+
+    #[test]
+    fn try_layout_reports_overflow_and_accepts_valid_capacities() {
+        assert!(Vector::<u64>::try_layout(0).is_ok());
+        assert!(Vector::<u64>::try_layout(1_000).is_ok());
+
+        // `usize::MAX` elements of any non-ZST cannot fit in an address space.
+        assert!(Vector::<u64>::try_layout(usize::MAX).is_err());
+        assert!(Vector::<u8>::try_layout(usize::MAX).is_err());
+    }
+
+    #[test]
+    fn try_layout_reports_overflow_for_both_len_and_additional() {
+        let mut vec: Vector<u32> = Vector::new();
+        vec.push(1);
+
+        // `1 + usize::MAX` overflows the length computation itself.
+        assert_eq!(vec.required_capacity(usize::MAX), Err("capacity overflow"));
+
+        // `len + additional` fits, but the element layout does not.
+        assert!(Vector::<u32>::try_layout(usize::MAX / 2).is_err());
+    }
+
+    #[test]
+    fn amortized_capacity_never_rounds_down_a_request() {
+        let mut vec: Vector<u32> = Vector::new();
+
+        assert!(vec.amortized_capacity(100) >= 100);
+        assert!(vec.amortized_capacity(1) >= 4);
+
+        vec.reserve_exact(8);
+        vec.extend(0..8);
+        // Doubling applies to the *current* capacity once growth is needed.
+        assert!(vec.amortized_capacity(9) >= 16);
+    }
+
+    #[test]
+    fn zero_sized_type_reports_maximum_capacity_without_allocating() {
+        let mut vec: Vector<Marker> = Vector::new();
+
+        for _ in 0..10 {
+            vec.push(Marker);
+        }
+
+        assert_eq!(vec.len, 10);
+        assert_eq!(vec.capacity, usize::MAX);
+        // No allocation happened, so the pointer is still dangling.
+        assert_eq!(vec.ptr, NonNull::dangling());
+    }
+
+    #[test]
+    fn deallocate_tolerates_never_allocated_and_zero_sized_vectors() {
+        // These would abort if a zero-sized layout reached `dealloc`.
+        Vector::<u32>::deallocate(NonNull::dangling(), 0);
+        Vector::<()>::deallocate(NonNull::dangling(), usize::MAX);
+    }
+
+    #[test]
+    fn grow_keeps_the_allocation_and_length_in_sync() {
+        let mut vec: Vector<u32> = Vector::new();
+
+        vec.grow();
+        assert!(vec.capacity >= 4);
+        assert_eq!(vec.len, 0);
+        assert_ne!(vec.ptr, NonNull::dangling(), "growing must allocate");
+
+        vec.push(1);
+        vec.push(2);
+        let capacity = vec.capacity;
+
+        vec.grow();
+        assert!(vec.capacity >= capacity);
+        assert_eq!(vec.len, 2);
+        assert_eq!(vec.as_slice(), &[1, 2]);
+    }
+
+    #[test]
+    fn owned_iterator_range_tracks_both_ends() {
+        let vec: Vector<i32> = (0..4).collect();
+        let mut iter = vec.into_iter();
+
+        assert_eq!(iter.remaining, 0..4);
+        iter.next();
+        assert_eq!(iter.remaining, 1..4);
+        iter.next_back();
+        assert_eq!(iter.remaining, 1..3);
+        iter.next();
+        iter.next();
+        assert_eq!(iter.remaining.start, iter.remaining.end);
+    }
+}
