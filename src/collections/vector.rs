@@ -564,7 +564,13 @@ impl<T> MyVec<T> {
         let slice = self.as_mut_slice();
         slice.sort_by(compare);
     }
-    
+    pub fn begin(&self) -> *const T {
+        self.ptr
+    }
+    pub fn end(&self) -> *const T {
+        unsafe { self.ptr.add(self.len) }
+    }
+
 }
 
 pub struct MyVecIter<'a, T> {
