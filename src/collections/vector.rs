@@ -576,7 +576,9 @@ impl<T> MyVec<T> {
 
         self.as_mut_slice()[start..end].sort();
     }
-    
+    pub fn binary_search(&self, value: &T) -> Result<usize, usize> where T: Ord {
+        self.as_slice().binary_search(value)
+    }
 }
 
 pub struct MyVecIter<'a, T> {
