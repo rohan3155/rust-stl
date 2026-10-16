@@ -1,6 +1,7 @@
 use std::alloc::{ alloc, dealloc, handle_alloc_error, Layout };
 use std::ptr;
 use std::slice;
+use std::iter::FusedIterator;
 
 pub struct MyVec<T> {
     ptr: *mut T,
@@ -525,8 +526,151 @@ impl<T> MyVec<T> {
 
         new_vec
     }
+
+    pub fn iter(&self) -> MyVecIter<'_, T> {
+        MyVecIter {
+            vec: self,
+            index: 0,
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> MyVecIterMut<'_, T> {
+        MyVecIterMut {
+            ptr: self.ptr,
+            len: self.len,
+            index: 0,
+            marker: std::marker::PhantomData,
+        }
+    }
 }
 
+pub struct MyVecIter<'a, T> {
+    vec: &'a MyVec<T>,
+    index: usize,
+}
+impl<'a, T> Iterator for MyVecIter<'a, T> {
+    type Item = &'a T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.vec.len {
+            return None;
+        }
+
+        let item = unsafe { &*self.vec.ptr.add(self.index) };
+
+        self.index += 1;
+        Some(item)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.vec.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl<T> ExactSizeIterator for MyVecIter<'_, T> {}
+
+impl<T> FusedIterator for MyVecIter<'_, T> {}
+
+pub struct MyVecIterMut<'a, T> {
+    ptr: *mut T,
+    len: usize,
+    index: usize,
+    marker: std::marker::PhantomData<&'a mut T>,
+}
+
+impl<'a, T> Iterator for MyVecIterMut<'a, T> {
+    type Item = &'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.len {
+            return None;
+        }
+
+        let item = unsafe { &mut *self.ptr.add(self.index) };
+
+        self.index += 1;
+        Some(item)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl<T> ExactSizeIterator for MyVecIterMut<'_, T> {}
+
+impl<T> FusedIterator for MyVecIterMut<'_, T> {}
+
+
+
+impl<'a, T> IntoIterator for &'a MyVec<T> {
+    type Item = &'a T;
+    type IntoIter = MyVecIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut MyVec<T> {
+    type Item = &'a mut T;
+    type IntoIter = MyVecIterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
+    }
+}
+
+pub struct MyVecIntoIter<T> {
+    vec: MyVec<T>,
+    index: usize,
+}
+
+impl<T> Iterator for MyVecIntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.vec.len {
+            return None;
+        }
+
+        let item = unsafe { self.vec.ptr.add(self.index).read() };
+
+        self.index += 1;
+        Some(item)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.vec.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl<T> ExactSizeIterator for MyVecIntoIter<T> {}
+
+impl<T> FusedIterator for MyVecIntoIter<T> {}
+
+impl<T> IntoIterator for MyVec<T> {
+    type Item = T;
+    type IntoIter = MyVecIntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let vec = unsafe {
+            // Transfer ownership of the vector into the iterator.
+            // Prevent the original vector from being dropped here.
+            std::ptr::read(&self)
+        };
+
+        std::mem::forget(self);
+
+        MyVecIntoIter {
+            vec,
+            index: 0,
+        }
+    }
+}
 impl<T> Default for MyVec<T> {
     fn default() -> Self {
         Self::new()
