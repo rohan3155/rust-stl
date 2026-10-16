@@ -589,6 +589,9 @@ impl<T> MyVec<T> {
 
         self.as_mut_slice().rotate_right(mid);
     }
+    pub fn split_at(&self, mid: usize) -> (&[T], &[T]) {
+        self.as_slice().split_at(mid)
+    }
 }
 
 pub struct MyVecIter<'a, T> {
