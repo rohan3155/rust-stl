@@ -761,3 +761,17 @@ impl<T> FromIterator<T> for MyVec<T> {
         vec
     }
 }
+
+impl<T> Deref for MyVec<T> {
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_slice()
+    }
+}
+
+impl<T> DerefMut for MyVec<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_mut_slice()
+    }
+}
