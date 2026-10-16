@@ -1,7 +1,7 @@
-use rust_stl::collections::vector::MyVec;
+use rust_stl::collections::vector::Vector;
 
 fn main() {
-    let mut numbers = MyVec::new();
+    let mut numbers = Vector::new();
 
     numbers.push(10);
     numbers.push(20);

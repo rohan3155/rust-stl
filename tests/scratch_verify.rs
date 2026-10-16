@@ -1,4 +1,4 @@
-use rust_stl::collections::vector::MyVec;
+use rust_stl::collections::vector::Vector;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static DROPS: AtomicUsize = AtomicUsize::new(0);
@@ -22,7 +22,7 @@ impl Drop for Noisy {
 #[test]
 fn zst_push_iter_drop() {
     DROPS.store(0, Ordering::SeqCst);
-    let mut v: MyVec<Zst> = MyVec::new();
+    let mut v: Vector<Zst> = Vector::new();
     for _ in 0..1000 {
         v.push(Zst);
     }
@@ -37,7 +37,7 @@ fn zst_push_iter_drop() {
 
 #[test]
 fn unit_zst_no_alloc() {
-    let mut v: MyVec<()> = MyVec::new();
+    let mut v: Vector<()> = Vector::new();
     v.push(());
     v.push(());
     assert_eq!(v.len(), 2);
@@ -49,7 +49,7 @@ fn unit_zst_no_alloc() {
 
 #[test]
 fn empty_shrink_to_fit_is_safe() {
-    let mut v: MyVec<i32> = MyVec::new();
+    let mut v: Vector<i32> = Vector::new();
     v.reserve(16);
     assert!(v.capacity() >= 16);
     v.shrink_to_fit();
@@ -63,8 +63,8 @@ fn empty_shrink_to_fit_is_safe() {
 #[test]
 fn append_does_not_double_drop() {
     DROPS.store(0, Ordering::SeqCst);
-    let mut a: MyVec<Noisy> = MyVec::new();
-    let mut b: MyVec<Noisy> = MyVec::new();
+    let mut a: Vector<Noisy> = Vector::new();
+    let mut b: Vector<Noisy> = Vector::new();
     a.push(Noisy(1));
     a.push(Noisy(2));
     b.push(Noisy(3));
@@ -77,7 +77,7 @@ fn append_does_not_double_drop() {
 
 #[test]
 fn zst_reverse_and_insert_remove() {
-    let mut v: MyVec<u32> = MyVec::new();
+    let mut v: Vector<u32> = Vector::new();
     v.reverse();
     v.insert(0, 7);
     assert_eq!(v.remove(0), 7);
@@ -86,14 +86,14 @@ fn zst_reverse_and_insert_remove() {
 
 #[test]
 fn split_off_boundaries() {
-    let mut v: MyVec<i32> = MyVec::new();
+    let mut v: Vector<i32> = Vector::new();
     for i in 0..5 {
         v.push(i);
     }
     let tail = v.split_off(0);
     assert_eq!(tail.len(), 5);
     assert_eq!(v.len(), 0);
-    let mut v2: MyVec<i32> = MyVec::new();
+    let mut v2: Vector<i32> = Vector::new();
     for i in 0..5 {
         v2.push(i);
     }
@@ -107,7 +107,7 @@ fn split_off_boundaries() {
 
 #[test]
 fn try_reserve_overflow_is_error_not_panic() {
-    let mut v: MyVec<u32> = MyVec::new();
+    let mut v: Vector<u32> = Vector::new();
     v.push(1);
     v.push(2);
 
@@ -118,7 +118,7 @@ fn try_reserve_overflow_is_error_not_panic() {
     assert_eq!(v.len(), 2);
     assert_eq!(v.as_slice(), &[1, 2]);
 
-    let mut w: MyVec<u64> = MyVec::new();
+    let mut w: Vector<u64> = Vector::new();
     w.push(1);
     assert!(w.try_reserve(usize::MAX).is_err());
     assert_eq!(w.as_slice(), &[1]);
@@ -126,7 +126,7 @@ fn try_reserve_overflow_is_error_not_panic() {
 
 #[test]
 fn reserve_growth_preserves_values() {
-    let mut v: MyVec<String> = MyVec::new();
+    let mut v: Vector<String> = Vector::new();
     for i in 0..100 {
         v.push(format!("item-{i}"));
     }
@@ -146,7 +146,7 @@ fn reserve_growth_preserves_values() {
 #[test]
 fn into_iter_partial_drop_drops_each_remaining_once() {
     DROPS.store(0, Ordering::SeqCst);
-    let mut v: MyVec<Noisy> = MyVec::new();
+    let mut v: Vector<Noisy> = Vector::new();
     for i in 0..5 {
         v.push(Noisy(i));
     }
@@ -170,7 +170,7 @@ fn into_iter_partial_drop_drops_each_remaining_once() {
 #[test]
 fn into_iter_unconsumed_drop_drops_all_once() {
     DROPS.store(0, Ordering::SeqCst);
-    let mut v: MyVec<Noisy> = MyVec::new();
+    let mut v: Vector<Noisy> = Vector::new();
     for i in 0..4 {
         v.push(Noisy(i));
     }
@@ -182,7 +182,7 @@ fn into_iter_unconsumed_drop_drops_all_once() {
 #[test]
 fn into_iter_fully_consumed_does_not_double_drop() {
     DROPS.store(0, Ordering::SeqCst);
-    let mut v: MyVec<Noisy> = MyVec::new();
+    let mut v: Vector<Noisy> = Vector::new();
     for i in 0..4 {
         v.push(Noisy(i));
     }
@@ -203,7 +203,7 @@ fn into_iter_fully_consumed_does_not_double_drop() {
 
 #[test]
 fn into_iter_double_ended() {
-    let v: MyVec<i32> = (0..6).collect();
+    let v: Vector<i32> = (0..6).collect();
     let mut it = v.into_iter();
     assert_eq!(it.next(), Some(0));
     assert_eq!(it.next_back(), Some(5));
@@ -219,7 +219,7 @@ fn into_iter_double_ended() {
 #[test]
 fn into_iter_zst_with_drop() {
     DROPS.store(0, Ordering::SeqCst);
-    let mut v: MyVec<Zst> = MyVec::new();
+    let mut v: Vector<Zst> = Vector::new();
     for _ in 0..7 {
         v.push(Zst);
     }
@@ -235,13 +235,13 @@ fn into_iter_zst_with_drop() {
 
 #[test]
 fn into_iter_empty_and_zst_fully_consumed() {
-    let v: MyVec<i32> = MyVec::new();
+    let v: Vector<i32> = Vector::new();
     let mut it = v.into_iter();
     assert_eq!(it.size_hint(), (0, Some(0)));
     assert_eq!(it.next(), None);
     drop(it);
 
-    let mut z: MyVec<()> = MyVec::new();
+    let mut z: Vector<()> = Vector::new();
     z.push(());
     z.push(());
     assert_eq!(z.into_iter().count(), 2);

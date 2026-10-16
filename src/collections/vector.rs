@@ -7,7 +7,7 @@ use std::ops::{ Deref, DerefMut, Index, IndexMut };
 use std::fmt::Debug;
 use std::iter::{ Extend, FromIterator };
 use std::cmp::{ PartialEq, Eq };
-pub struct MyVec<T> {
+pub struct Vector<T> {
     /// Pointer to the start of the allocation.
     ///
     /// Invariants:
@@ -22,7 +22,7 @@ pub struct MyVec<T> {
     capacity: usize,
 }
 
-impl<T> MyVec<T> {
+impl<T> Vector<T> {
     pub fn new() -> Self {
         Self {
             // A zero-capacity vector owns no allocation, so it stores a
@@ -243,8 +243,8 @@ impl<T> MyVec<T> {
         }
     }
 
-    pub fn indices_of<F>(&self, mut predicate: F) -> MyVec<usize> where F: FnMut(&T) -> bool {
-        let mut indices = MyVec::new();
+    pub fn indices_of<F>(&self, mut predicate: F) -> Vector<usize> where F: FnMut(&T) -> bool {
+        let mut indices = Vector::new();
 
         for index in 0..self.len {
             // SAFETY: `index < len` and those slots are initialized.
@@ -647,7 +647,7 @@ impl<T> MyVec<T> {
         self.len += 1;
     }
 
-    pub fn append(&mut self, other: &mut MyVec<T>) {
+    pub fn append(&mut self, other: &mut Vector<T>) {
         let other_len = other.len;
 
         if other_len == 0 {
@@ -721,10 +721,10 @@ impl<T> MyVec<T> {
         }
     }
 
-    pub fn split_off(&mut self, at: usize) -> MyVec<T> {
+    pub fn split_off(&mut self, at: usize) -> Vector<T> {
         assert!(at <= self.len, "index out of bounds");
 
-        let mut new_vec = MyVec::new();
+        let mut new_vec = Vector::new();
         new_vec.reserve(self.len - at);
 
         // SAFETY: `at <= len` and `new_vec` has capacity for `len - at`
@@ -745,15 +745,15 @@ impl<T> MyVec<T> {
         new_vec
     }
 
-    pub fn iter(&self) -> MyVecIter<'_, T> {
-        MyVecIter {
+    pub fn iter(&self) -> VectorIter<'_, T> {
+        VectorIter {
             vec: self,
             index: 0,
         }
     }
 
-    pub fn iter_mut(&mut self) -> MyVecIterMut<'_, T> {
-        MyVecIterMut {
+    pub fn iter_mut(&mut self) -> VectorIterMut<'_, T> {
+        VectorIterMut {
             ptr: self.ptr.as_ptr(),
             len: self.len,
             index: 0,
@@ -840,11 +840,11 @@ impl<T> MyVec<T> {
     }
 }
 
-pub struct MyVecIter<'a, T> {
-    vec: &'a MyVec<T>,
+pub struct VectorIter<'a, T> {
+    vec: &'a Vector<T>,
     index: usize,
 }
-impl<'a, T> Iterator for MyVecIter<'a, T> {
+impl<'a, T> Iterator for VectorIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -864,18 +864,18 @@ impl<'a, T> Iterator for MyVecIter<'a, T> {
     }
 }
 
-impl<T> ExactSizeIterator for MyVecIter<'_, T> {}
+impl<T> ExactSizeIterator for VectorIter<'_, T> {}
 
-impl<T> FusedIterator for MyVecIter<'_, T> {}
+impl<T> FusedIterator for VectorIter<'_, T> {}
 
-pub struct MyVecIterMut<'a, T> {
+pub struct VectorIterMut<'a, T> {
     ptr: *mut T,
     len: usize,
     index: usize,
     marker: std::marker::PhantomData<&'a mut T>,
 }
 
-impl<'a, T> Iterator for MyVecIterMut<'a, T> {
+impl<'a, T> Iterator for VectorIterMut<'a, T> {
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -895,32 +895,32 @@ impl<'a, T> Iterator for MyVecIterMut<'a, T> {
     }
 }
 
-impl<T> ExactSizeIterator for MyVecIterMut<'_, T> {}
+impl<T> ExactSizeIterator for VectorIterMut<'_, T> {}
 
-impl<T> FusedIterator for MyVecIterMut<'_, T> {}
+impl<T> FusedIterator for VectorIterMut<'_, T> {}
 
-impl<'a, T> IntoIterator for &'a MyVec<T> {
+impl<'a, T> IntoIterator for &'a Vector<T> {
     type Item = &'a T;
-    type IntoIter = MyVecIter<'a, T>;
+    type IntoIter = VectorIter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
     }
 }
 
-impl<'a, T> IntoIterator for &'a mut MyVec<T> {
+impl<'a, T> IntoIterator for &'a mut Vector<T> {
     type Item = &'a mut T;
-    type IntoIter = MyVecIterMut<'a, T>;
+    type IntoIter = VectorIterMut<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter_mut()
     }
 }
 
-/// Owning iterator over a [`MyVec`].
+/// Owning iterator over a [`Vector`].
 ///
-/// Created by [`MyVec::into_iter`] (or, equivalently, `for value in vec`).
-pub struct MyVecIntoIter<T> {
+/// Created by [`Vector::into_iter`] (or, equivalently, `for value in vec`).
+pub struct VectorIntoIter<T> {
     /// Base of the allocation being drained. Still owned by this iterator.
     ptr: NonNull<T>,
     /// The half-open range of the allocation that is still initialized and has
@@ -940,7 +940,7 @@ pub struct MyVecIntoIter<T> {
     marker: std::marker::PhantomData<T>,
 }
 
-impl<T> Iterator for MyVecIntoIter<T> {
+impl<T> Iterator for VectorIntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -967,7 +967,7 @@ impl<T> Iterator for MyVecIntoIter<T> {
     }
 }
 
-impl<T> DoubleEndedIterator for MyVecIntoIter<T> {
+impl<T> DoubleEndedIterator for VectorIntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.remaining.start >= self.remaining.end {
             return None;
@@ -983,11 +983,11 @@ impl<T> DoubleEndedIterator for MyVecIntoIter<T> {
     }
 }
 
-impl<T> ExactSizeIterator for MyVecIntoIter<T> {}
+impl<T> ExactSizeIterator for VectorIntoIter<T> {}
 
-impl<T> FusedIterator for MyVecIntoIter<T> {}
+impl<T> FusedIterator for VectorIntoIter<T> {}
 
-impl<T> Drop for MyVecIntoIter<T> {
+impl<T> Drop for VectorIntoIter<T> {
     fn drop(&mut self) {
         // SAFETY: `remaining` is exactly the set of live, owned, not-yet-yielded
         // elements, and it is always a sub-range of the allocation. Dropping
@@ -1003,21 +1003,21 @@ impl<T> Drop for MyVecIntoIter<T> {
         // Release the allocation exactly once. `deallocate` is a no-op for a
         // zero-sized `T` or a zero capacity, matching how the allocation was
         // (not) created.
-        MyVec::<T>::deallocate(self.ptr, self.capacity);
+        Vector::<T>::deallocate(self.ptr, self.capacity);
     }
 }
 
-impl<T> IntoIterator for MyVec<T> {
+impl<T> IntoIterator for Vector<T> {
     type Item = T;
-    type IntoIter = MyVecIntoIter<T>;
+    type IntoIter = VectorIntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        // Wrapping in `ManuallyDrop` disables `MyVec`'s destructor, so its
+        // Wrapping in `ManuallyDrop` disables `Vector`'s destructor, so its
         // allocation and elements are transferred to the iterator without being
         // freed or dropped here.
         let vec = std::mem::ManuallyDrop::new(self);
 
-        MyVecIntoIter {
+        VectorIntoIter {
             ptr: vec.ptr,
             remaining: 0..vec.len,
             capacity: vec.capacity,
@@ -1025,13 +1025,13 @@ impl<T> IntoIterator for MyVec<T> {
         }
     }
 }
-impl<T> Default for MyVec<T> {
+impl<T> Default for Vector<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T> Drop for MyVec<T> {
+impl<T> Drop for Vector<T> {
     fn drop(&mut self) {
         // `clear` drops every initialized element, then `deallocate` frees the
         // block. For a ZST both are no-ops with respect to the allocator: the
@@ -1042,8 +1042,8 @@ impl<T> Drop for MyVec<T> {
     }
 }
 
-/// Implementing Index trait for MyVec
-impl<T> Index<usize> for MyVec<T> {
+/// Implementing Index trait for Vector
+impl<T> Index<usize> for Vector<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -1054,7 +1054,7 @@ impl<T> Index<usize> for MyVec<T> {
     }
 }
 
-impl<T> IndexMut<usize> for MyVec<T> {
+impl<T> IndexMut<usize> for Vector<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         assert!(index < self.len, "index out of bounds");
 
@@ -1063,14 +1063,14 @@ impl<T> IndexMut<usize> for MyVec<T> {
     }
 }
 
-impl<T> Debug for MyVec<T> where T: Debug {
+impl<T> Debug for Vector<T> where T: Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
-impl<T> Clone for MyVec<T> where T: Clone {
+impl<T> Clone for Vector<T> where T: Clone {
     fn clone(&self) -> Self {
-        let mut new_vec = MyVec::new();
+        let mut new_vec = Vector::new();
         new_vec.reserve(self.len);
 
         for item in self.iter() {
@@ -1081,7 +1081,7 @@ impl<T> Clone for MyVec<T> where T: Clone {
     }
 }
 
-impl<T> PartialEq for MyVec<T> where T: PartialEq {
+impl<T> PartialEq for Vector<T> where T: PartialEq {
     fn eq(&self, other: &Self) -> bool {
         if self.len != other.len {
             return false;
@@ -1097,9 +1097,9 @@ impl<T> PartialEq for MyVec<T> where T: PartialEq {
     }
 }
 
-impl<T> Eq for MyVec<T> where T: Eq {}
+impl<T> Eq for Vector<T> where T: Eq {}
 
-impl<T> Extend<T> for MyVec<T> {
+impl<T> Extend<T> for Vector<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         for item in iter {
             self.push(item);
@@ -1107,15 +1107,15 @@ impl<T> Extend<T> for MyVec<T> {
     }
 }
 
-impl<T> FromIterator<T> for MyVec<T> {
+impl<T> FromIterator<T> for Vector<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let mut vec = MyVec::new();
+        let mut vec = Vector::new();
         vec.extend(iter);
         vec
     }
 }
 
-impl<T> Deref for MyVec<T> {
+impl<T> Deref for Vector<T> {
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
@@ -1123,7 +1123,7 @@ impl<T> Deref for MyVec<T> {
     }
 }
 
-impl<T> DerefMut for MyVec<T> {
+impl<T> DerefMut for Vector<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_mut_slice()
     }
