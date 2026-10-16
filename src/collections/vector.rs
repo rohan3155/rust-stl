@@ -598,6 +598,17 @@ impl<T> MyVec<T> {
     pub fn chunks(&self, size: usize) -> std::slice::Chunks<'_, T> {
         self.as_slice().chunks(size)
     }
+    pub fn binary_search_by<F>(&self, compare: F) -> Result<usize, usize>
+        where F: FnMut(&T) -> std::cmp::Ordering
+    {
+        self.as_slice().binary_search_by(compare)
+    }
+
+    pub fn binary_search_by_key<B, F>(&self, key: &B, mut f: F) -> Result<usize, usize>
+        where B: Ord, F: FnMut(&T) -> B
+    {
+        self.as_slice().binary_search_by_key(key, f)
+    }
 }
 
 pub struct MyVecIter<'a, T> {
