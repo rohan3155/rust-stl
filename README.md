@@ -332,18 +332,21 @@ Each example is self-contained and runs with `cargo run --example <name>`:
 ```text
 rust-stl/
 ├── Cargo.toml
+├── Cargo.lock
 ├── README.md
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
 ├── SECURITY.md
 ├── LICENSE-MIT
 ├── LICENSE-APACHE
+├── .github/workflows/ci.yml   formatting, lints, tests, docs, MSRV
 ├── src/
 │   ├── lib.rs                 crate-level documentation
 │   └── collections/
 │       ├── mod.rs
-│       └── vector.rs          Vector<T> and its iterators
+│       └── vector.rs          Vector<T>, its iterators and unit tests
 ├── examples/                  runnable examples (see above)
+├── benches/vector.rs          dependency-free micro-benchmark
 └── tests/                     integration test suite (see above)
 ```
 
@@ -355,7 +358,8 @@ rust-stl/
 * Planned improvements to `Vector<T>`:
   * linear-time `retain`/`dedup`/`remove_where`;
   * a structured error type for the fallible reservation methods;
-  * a benchmark suite, so performance statements can be backed by measurements.
+  * a statistically sound benchmark suite (the current one is a sanity check);
+  * a Miri job in CI.
 
 ## Contributing
 
