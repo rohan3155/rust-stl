@@ -604,7 +604,7 @@ impl<T> MyVec<T> {
         self.as_slice().binary_search_by(compare)
     }
 
-    pub fn binary_search_by_key<B, F>(&self, key: &B, mut f: F) -> Result<usize, usize>
+    pub fn binary_search_by_key<B, F>(&self, key: &B,  f: F) -> Result<usize, usize>
         where B: Ord, F: FnMut(&T) -> B
     {
         self.as_slice().binary_search_by_key(key, f)
