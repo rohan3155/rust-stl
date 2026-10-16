@@ -412,7 +412,12 @@ impl<T> Vector<T> {
     where
         F: FnMut(&T) -> bool,
     {
-        (0..self.len).find(|&index| predicate(unsafe { &*self.ptr.as_ptr().add(index) }))
+        (0..self.len).find(|&index| {
+            // SAFETY: `index` comes from `0..self.len`, so it is in bounds and
+            // the first `len` slots are initialized. The reference is reborrowed
+            // from `&self`, so it cannot outlive the vector's elements.
+            predicate(unsafe { &*self.ptr.as_ptr().add(index) })
+        })
     }
 
     /// Returns how many elements satisfy `predicate`.
@@ -424,7 +429,11 @@ impl<T> Vector<T> {
         F: FnMut(&T) -> bool,
     {
         (0..self.len)
-            .filter(|&index| predicate(unsafe { &*self.ptr.as_ptr().add(index) }))
+            .filter(|&index| {
+                // SAFETY: as in `find_index`, `index < self.len`, that slot is
+                // initialized, and the reference is tied to the `&self` borrow.
+                predicate(unsafe { &*self.ptr.as_ptr().add(index) })
+            })
             .count()
     }
 
@@ -923,6 +932,10 @@ impl<T> Vector<T> {
         }
 
         let new_layout = Self::try_layout(new_capacity)?;
+        // SAFETY: `T` is not zero-sized here (handled above), so `new_layout`
+        // has a non-zero size; and it was derived from `new_capacity`, so the
+        // block `alloc` returns is valid for exactly that many `T`. A null
+        // return is the allocator's only failure mode and is checked next.
         let new_ptr = unsafe { alloc(new_layout) } as *mut T;
 
         if new_ptr.is_null() {
@@ -1063,7 +1076,14 @@ impl<T> Vector<T> {
             return;
         }
 
-        // `len > 0`, so `allocate` is called with a non-zero size.
+        // `len > 0` and `T` is not zero-sized (both checked above), so
+        // `allocate` receives a valid non-zero layout.
+        //
+        // SAFETY: `allocate` is an unsafe function because it hands back an
+        // uninitialized block of `len` elements; the caller promises to
+        // initialize every slot before the block is read or dropped, which the
+        // `copy_nonoverlapping` below does. It aborts on allocation failure, so
+        // there is no null to check.
         let new_ptr = unsafe { Self::allocate(self.len) };
 
         // SAFETY: the destination is a fresh allocation of exactly `len`
@@ -1621,6 +1641,11 @@ impl<'a, T> Iterator for VectorIter<'a, T> {
             return None;
         }
 
+        // SAFETY: `index < self.vec.len` (checked above), so the slot is inside
+        // the allocation and initialized. The reference is produced from the
+        // `&'a Vector<T>` the iterator holds, so it borrows the same data for
+        // `'a`; the iterator only ever hands out a shared reference, and
+        // `self.index` advances so each slot is yielded at most once.
         let item = unsafe { &*self.vec.ptr.as_ptr().add(self.index) };
 
         self.index += 1;
@@ -1652,6 +1677,11 @@ impl<'a, T> Iterator for VectorIterMut<'a, T> {
             return None;
         }
 
+        // SAFETY: `index < self.len` (checked above) and that slot is
+        // initialized. The `PhantomData<&'a mut T>` marks this iterator as
+        // having exclusive access to the whole `len`-element range for `'a`, and
+        // `self.index` only advances, so each distinct slot is handed out as a
+        // `&'a mut T` at most once and no two live references alias.
         let item = unsafe { &mut *self.ptr.add(self.index) };
 
         self.index += 1;
