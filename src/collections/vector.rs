@@ -2,8 +2,10 @@ use std::alloc::{ alloc, dealloc, handle_alloc_error, Layout };
 use std::ptr;
 use std::slice;
 use std::iter::FusedIterator;
-use std::ops::{Index, IndexMut};
-
+use std::ops::{ Deref, DerefMut, Index, IndexMut };
+use std::fmt::Debug;
+use std::iter::{ Extend, FromIterator };
+use std::cmp::{ PartialEq, Eq };
 pub struct MyVec<T> {
     ptr: *mut T,
     len: usize,
@@ -699,11 +701,28 @@ impl<T> Index<usize> for MyVec<T> {
     }
 }
 
-
 impl<T> IndexMut<usize> for MyVec<T> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         assert!(index < self.len, "index out of bounds");
 
         unsafe { &mut *self.ptr.add(index) }
+    }
+}
+
+impl<T> Debug for MyVec<T> where T: Debug {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.iter()).finish()
+    }
+}
+impl<T>  Clone for MyVec<T> where T: Clone {
+    fn clone(&self) -> Self {
+        let mut new_vec = MyVec::new();
+        new_vec.reserve(self.len);
+
+        for item in self.iter() {
+            new_vec.push(item.clone());
+        }
+
+        new_vec
     }
 }
