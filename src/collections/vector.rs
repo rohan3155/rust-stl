@@ -2,6 +2,7 @@ use std::alloc::{ alloc, dealloc, handle_alloc_error, Layout };
 use std::ptr;
 use std::slice;
 use std::iter::FusedIterator;
+use std::ops::{Index, IndexMut};
 
 pub struct MyVec<T> {
     ptr: *mut T,
@@ -603,8 +604,6 @@ impl<T> ExactSizeIterator for MyVecIterMut<'_, T> {}
 
 impl<T> FusedIterator for MyVecIterMut<'_, T> {}
 
-
-
 impl<'a, T> IntoIterator for &'a MyVec<T> {
     type Item = &'a T;
     type IntoIter = MyVecIter<'a, T>;
@@ -686,5 +685,25 @@ impl<T> Drop for MyVec<T> {
                 dealloc(self.ptr as *mut u8, Self::layout(self.capacity));
             }
         }
+    }
+}
+
+/// Implementing Index trait for MyVec
+impl<T> Index<usize> for MyVec<T> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        assert!(index < self.len, "index out of bounds");
+
+        unsafe { &*self.ptr.add(index) }
+    }
+}
+
+
+impl<T> IndexMut<usize> for MyVec<T> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        assert!(index < self.len, "index out of bounds");
+
+        unsafe { &mut *self.ptr.add(index) }
     }
 }
