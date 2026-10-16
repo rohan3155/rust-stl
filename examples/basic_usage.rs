@@ -48,7 +48,7 @@ fn main() {
     if let Some(first) = readings.first_mut() {
         *first += 1;
     }
-    readings[0] = readings[0] * 2;
+    readings[0] *= 2;
     println!("after updates: {readings:?}");
 
     // --- Iterating ---------------------------------------------------------

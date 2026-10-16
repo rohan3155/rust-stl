@@ -50,11 +50,8 @@ fn main() {
     // taken are still freed correctly when the iterator is dropped.
     let mut front = Vec::new();
     let mut back = Vec::new();
-    loop {
-        match iter.next() {
-            Some(value) => front.push(value),
-            None => break,
-        }
+    while let Some(value) = iter.next() {
+        front.push(value);
         match iter.next_back() {
             Some(value) => back.push(value),
             None => break,
