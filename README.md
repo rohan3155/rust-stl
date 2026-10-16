@@ -238,6 +238,10 @@ assert_eq!(rejoined, "a,b,c");
   separate types and do not interoperate implicitly.
 * **`swap_remove` returns `Option<T>`** and returns `None` for an out-of-range
   index, whereas `Vec::swap_remove` panics.
+* **No `Copy` specialisation.** Bulk operations such as `Clone` map `clone()`
+  over the elements rather than specialising for `T: Copy` to a `memcpy`, so
+  cloning a vector of `Copy` types is slower than `Vec::clone`. Behaviour is
+  identical; only the constant factor differs.
 
 ## Performance and complexity
 
