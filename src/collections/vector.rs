@@ -642,10 +642,14 @@ impl<T> MyVec<T> {
             ptr::copy_nonoverlapping(other.ptr.as_ptr(), self.ptr.as_ptr().add(self.len), other_len);
         }
 
-        // Ownership of the copied values has moved to `self`, so `other` must be
-        // emptied without re-running their destructors.
+        // Ownership of the copied values has moved to `self`. `other` must be
+        // emptied *without* running their destructors: `copy_nonoverlapping`
+        // duplicated the values, so clearing `other` here would drop every
+        // appended element twice (once via `self` and once via `other`).
+        // Truncating the length is enough; `other` keeps its now-unused
+        // capacity.
         self.len = total_len;
-        other.clear();
+        other.len = 0;
     }
 
     pub fn extend(&mut self, iter: impl IntoIterator<Item = T>) {
