@@ -753,3 +753,11 @@ impl<T> Extend<T> for MyVec<T> {
         }
     }
 }
+
+impl<T> FromIterator<T> for MyVec<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut vec = MyVec::new();
+        vec.extend(iter);
+        vec
+    }
+}
