@@ -580,10 +580,15 @@ impl<T> MyVec<T> {
         self.as_slice().binary_search(value)
     }
     pub fn rotate_left(&mut self, mid: usize) {
-    assert!(mid <= self.len, "mid out of bounds");
+        assert!(mid <= self.len, "mid out of bounds");
 
-    self.as_mut_slice().rotate_left(mid);
-}
+        self.as_mut_slice().rotate_left(mid);
+    }
+    pub fn rotate_right(&mut self, mid: usize) {
+        assert!(mid <= self.len, "mid out of bounds");
+
+        self.as_mut_slice().rotate_right(mid);
+    }
 }
 
 pub struct MyVecIter<'a, T> {
