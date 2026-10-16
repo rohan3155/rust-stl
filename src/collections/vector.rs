@@ -108,6 +108,16 @@ use std::slice;
 /// * **Partial consumption.** [`Vector::into_iter`] supports
 ///   [`DoubleEndedIterator`]; `Vec`'s iterator additionally supports
 ///   in-place and slice-like adapters.
+/// * **No `Copy` specialisation.** `Vec`'s `Clone` (and several other bulk
+///   operations) specialise for `T: Copy` and reduce to `memcpy`; this
+///   implementation always maps `clone()` over the elements, so cloning a
+///   vector of `Copy` types is measurably slower. The behaviour is identical,
+///   only the constant factor differs. Specialising like this needs unstable
+///   `min_specialization` until Rust exposes a stable mechanism.
+/// * **Removal by shifting.** `retain`, `retain_mut`, `remove_where`,
+///   `remove_where_mut`, `remove_all`, `dedup` and `remove_duplicates` shift the
+///   tail for each removal, so their worst case is O(`len²`) where the standard
+///   library is O(`len`).
 /// * **Following the standard library.** Methods that share a name with `Vec`
 ///   are intended to behave the same way, but they are documented individually
 ///   rather than assumed to be identical.
