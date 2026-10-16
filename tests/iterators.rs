@@ -279,10 +279,12 @@ fn mutable_iteration_over_zero_sized_values() {
         vec.push(());
     }
 
-    for unit in &mut vec {
-        *unit = ();
+    let mut seen = 0;
+    for _unit in &mut vec {
+        seen += 1;
     }
 
+    assert_eq!(seen, 4);
     assert_eq!(vec.len(), 4);
     assert_eq!((&vec).into_iter().count(), 4);
 }

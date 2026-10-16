@@ -1,3 +1,9 @@
+//! A growable, contiguous array — this crate's counterpart to
+//! [`std::vec::Vec`].
+//!
+//! See [`Vector`] for the type-level documentation, examples and a description
+//! of how it differs from the standard library's implementation.
+
 use std::alloc::{Layout, alloc, dealloc, handle_alloc_error};
 use std::cmp::{Eq, PartialEq};
 use std::fmt::Debug;
@@ -7,6 +13,104 @@ use std::ops::{Deref, DerefMut, Index, IndexMut};
 use std::ptr;
 use std::ptr::NonNull;
 use std::slice;
+
+/// A growable, contiguous, heap-allocated array.
+///
+/// `Vector<T>` stores its elements in one contiguous heap allocation, exactly
+/// like [`std::vec::Vec<T>`], and grows that allocation automatically as
+/// elements are pushed. It is the "sequence container" of this crate: the one to
+/// reach for when you need ordered, indexable storage.
+///
+/// # Length and capacity
+///
+/// * **Length** ([`len`](Vector::len)) is the number of elements actually
+///   stored; those elements are initialized and owned by the vector.
+/// * **Capacity** ([`capacity`](Vector::capacity)) is the number of
+///   elements the current
+///   allocation can hold without reallocating. It is always `>= len`.
+///
+/// Pushing past the capacity reallocates: the elements are moved to a larger
+/// block (the capacity at least doubles) and the old block is freed. This makes
+/// [`push`](Vector::push) O(1) *amortized* even though an individual push may be
+/// O(`len`). Reserving in advance with [`reserve`](Vector::reserve) or
+/// [`reserve_exact`](Vector::reserve_exact) avoids the intermediate
+/// reallocations when the final size is known.
+///
+/// # Complexity
+///
+/// | Operation | Average | Worst case |
+/// |---|---|---|
+/// | [`push`](Vector::push) / [`pop`](Vector::pop) | O(1) | O(`len`) on reallocation |
+/// | [`get`](Vector::get) / indexing | O(1) | O(1) |
+/// | [`insert`](Vector::insert) / [`remove`](Vector::remove) | O(`len`) | O(`len`) |
+/// | [`swap_remove`](Vector::swap_remove) | O(1) | O(1) |
+/// | [`sort`](Vector::sort) | O(`len` log `len`) | O(`len` log `len`) |
+/// | [`binary_search`](Vector::binary_search) | O(log `len`) | O(log `len`) |
+/// | [`retain`](Vector::retain) / [`dedup`](Vector::dedup) | O(`len`) | O(`len²`) |
+///
+/// # Zero-sized types
+///
+/// `Vector<T>` supports zero-sized element types such as `()` or a custom
+/// zero-sized struct. No allocation is performed for them, and
+/// [`capacity`](Vector::capacity) reports [`usize::MAX`]. Destructors of
+/// zero-sized values still run exactly once.
+///
+/// # Examples
+///
+/// Construction, insertion, indexing, iteration, removal and sorting:
+///
+/// ```
+/// use rust_stl::collections::vector::Vector;
+///
+/// // Build a vector from an iterator.
+/// let mut scores: Vector<i32> = (0..5).map(|n| n * 10).collect();
+/// assert_eq!(scores.len(), 5);
+/// assert_eq!(scores.capacity() >= 5, true);
+///
+/// // Insert in the middle, read it back safely, then index directly.
+/// scores.insert(2, 15);
+/// assert_eq!(scores.get(2), Some(&15));
+/// assert_eq!(scores[2], 15);
+///
+/// // Iterate by reference and mutate in place.
+/// for score in &mut scores {
+///     *score += 1;
+/// }
+///
+/// // Remove by value and by index.
+/// assert!(scores.remove_first(&11));
+/// assert_eq!(scores.remove(0), 1);
+///
+/// // Sort, then search. Note that `Ok`/`Err` distinguish found from not-found.
+/// scores.sort();
+/// assert!(scores.binary_search(&21).is_ok());
+/// assert_eq!(scores.binary_search(&100), Err(scores.len()));
+///
+/// // Iteration by value consumes the vector.
+/// let total: i32 = scores.into_iter().sum();
+/// assert!(total > 0);
+/// ```
+///
+/// # Differences from [`std::vec::Vec`]
+///
+/// This is an educational reimplementation, not a drop-in replacement. It is
+/// not benchmarked against the standard library and makes no performance
+/// claims.
+///
+/// * **API surface.** Only a subset of `Vec`'s API is provided, and some names
+///   differ: [`remove_where`](Vector::remove_where) and
+///   [`remove_all`](Vector::remove_all) have no `Vec` equivalent, while
+///   `Vec::drain`, `Vec::splice`, `Vec::with_capacity` and fallible indexing of
+///   ranges are absent.
+/// * **Fallible reservation.** [`try_reserve`](Vector::try_reserve) returns
+///   `Result<(), &'static str>` rather than a dedicated error type, and does not
+///   distinguish capacity overflow from allocation failure.
+/// * **Partial consumption.** [`Vector::into_iter`] supports
+///   [`DoubleEndedIterator`]; `Vec`'s iterator additionally supports
+///   in-place and slice-like adapters.
+/// * **Following the standard library.** Methods that share a name with `Vec`
+///   are intended to behave the same way, but they are documented individually
+///   rather than assumed to be identical.
 pub struct Vector<T> {
     /// Pointer to the start of the allocation.
     ///
@@ -23,6 +127,23 @@ pub struct Vector<T> {
 }
 
 impl<T> Vector<T> {
+    /// Creates an empty `Vector`.
+    ///
+    /// No allocation is performed. The first element pushed triggers the first
+    /// allocation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = Vector::new();
+    /// assert!(vector.is_empty());
+    /// assert_eq!(vector.capacity(), 0);
+    ///
+    /// vector.push(1);
+    /// assert_eq!(vector.len(), 1);
+    /// ```
     pub fn new() -> Self {
         Self {
             // A zero-capacity vector owns no allocation, so it stores a
@@ -35,18 +156,46 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns the number of elements the vector holds.
+    ///
+    /// This is O(1).
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// Returns the number of elements the vector can hold without reallocating.
+    ///
+    /// This is O(1) and is an implementation detail: it is always `>= len`, but
+    /// the exact value is not part of the contract, so do not depend on it.
+    ///
+    /// For a zero-sized element type this reports [`usize::MAX`], because such a
+    /// vector never needs to allocate.
     pub fn capacity(&self) -> usize {
         self.capacity
     }
 
+    /// Returns `true` if the vector contains no elements.
+    ///
+    /// This is O(1) and is equivalent to `len() == 0`.
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
 
+    /// Returns a reference to the element at `index`, or `None` if `index` is
+    /// out of bounds.
+    ///
+    /// This is O(1). Prefer it over the indexing operator when the index may be
+    /// out of range, since indexing panics.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let vector: Vector<i32> = (0..3).collect();
+    /// assert_eq!(vector.get(1), Some(&1));
+    /// assert_eq!(vector.get(3), None);
+    /// ```
     pub fn get(&self, index: usize) -> Option<&T> {
         if index < self.len {
             // SAFETY: `index < len`, and the first `len` elements of the
@@ -57,6 +206,10 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns a mutable reference to the element at `index`, or `None` if
+    /// `index` is out of bounds.
+    ///
+    /// This is O(1).
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         if index < self.len {
             // SAFETY: `index < len`, and `&mut self` guarantees exclusive
@@ -181,6 +334,29 @@ impl<T> Vector<T> {
         self.capacity = new_capacity;
     }
 
+    /// Appends `value` to the back of the vector, growing it if necessary.
+    ///
+    /// # Complexity
+    ///
+    /// O(1) amortized. When `len == capacity` the backing storage is
+    /// reallocated, which is O(`len`); the capacity doubles on each such step,
+    /// so the cost averages out to constant time per push.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the additional element would overflow the vector's maximum
+    /// length.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector = Vector::new();
+    /// vector.push(1);
+    /// vector.push(2);
+    /// assert_eq!(vector.as_slice(), &[1, 2]);
+    /// ```
     pub fn push(&mut self, value: T) {
         if self.len == self.capacity {
             self.grow();
@@ -196,6 +372,20 @@ impl<T> Vector<T> {
         self.len += 1;
     }
 
+    /// Removes and returns the last element, or `None` if the vector is empty.
+    ///
+    /// This is O(1) and does not release capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..2).collect();
+    /// assert_eq!(vector.pop(), Some(1));
+    /// assert_eq!(vector.pop(), Some(0));
+    /// assert_eq!(vector.pop(), None);
+    /// ```
     pub fn pop(&mut self) -> Option<T> {
         if self.len == 0 {
             return None;
@@ -204,6 +394,10 @@ impl<T> Vector<T> {
         Some(self.remove(self.len - 1))
     }
 
+    /// Returns the index of the first element for which `predicate` returns
+    /// `true`, or `None` if no element matches.
+    ///
+    /// The predicate is applied in index order. This is O(`len`).
     pub fn find_index<F>(&self, mut predicate: F) -> Option<usize>
     where
         F: FnMut(&T) -> bool,
@@ -211,6 +405,10 @@ impl<T> Vector<T> {
         (0..self.len).find(|&index| predicate(unsafe { &*self.ptr.as_ptr().add(index) }))
     }
 
+    /// Returns how many elements satisfy `predicate`.
+    ///
+    /// The predicate is applied once per element, in index order. This is
+    /// O(`len`).
     pub fn count_matches<F>(&self, mut predicate: F) -> usize
     where
         F: FnMut(&T) -> bool,
@@ -220,6 +418,33 @@ impl<T> Vector<T> {
             .count()
     }
 
+    /// Removes the first element equal to `value`, returning `true` if one was
+    /// found.
+    ///
+    /// The tail is shifted left, so it preserves the order of the remaining
+    /// elements. This is O(`len`) plus the cost of the `PartialEq` comparisons.
+    /// Removes and returns the element at `index`, shifting every later element
+    /// one position to the left.
+    ///
+    /// Ownership of the removed value is transferred to the caller; the vector
+    /// does not drop it.
+    ///
+    /// This is O(`len`). If the order of the remaining elements does not matter,
+    /// [`swap_remove`](Self::swap_remove) is O(1).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index >= len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..3).collect();
+    /// assert_eq!(vector.remove(1), 1);
+    /// assert_eq!(vector.as_slice(), &[0, 2]);
+    /// ```
     pub fn remove_first(&mut self, value: &T) -> bool
     where
         T: PartialEq,
@@ -251,6 +476,10 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns a new `Vector` containing the indices of every element that
+    /// satisfies `predicate`, in ascending order.
+    ///
+    /// This is O(`len`) and allocates a result vector.
     pub fn indices_of<F>(&self, mut predicate: F) -> Vector<usize>
     where
         F: FnMut(&T) -> bool,
@@ -267,6 +496,22 @@ impl<T> Vector<T> {
         indices
     }
 
+    /// Removes all elements, dropping each one exactly once.
+    ///
+    /// The allocated capacity is retained, so the vector can be refilled without
+    /// reallocating. This is O(`len`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..4).collect();
+    /// let capacity = vector.capacity();
+    /// vector.clear();
+    /// assert!(vector.is_empty());
+    /// assert_eq!(vector.capacity(), capacity);
+    /// ```
     pub fn clear(&mut self) {
         // Shorten first, then drop: this mirrors `ptr::drop_in_place` on each
         // element and stays correct even if a `Drop` impl observes the vector.
@@ -280,6 +525,10 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns the contents as a slice.
+    ///
+    /// This is O(1) and performs no allocation. An empty vector yields an empty
+    /// slice backed by a dangling, non-null pointer.
     pub fn as_slice(&self) -> &[T] {
         if self.len == 0 {
             // SAFETY: an empty slice only requires a non-null, aligned pointer;
@@ -292,6 +541,9 @@ impl<T> Vector<T> {
         unsafe { slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
     }
 
+    /// Returns the contents as a mutable slice.
+    ///
+    /// This is O(1) and performs no allocation.
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         if self.len == 0 {
             // SAFETY: as in `as_slice`, and `&mut self` gives unique access.
@@ -303,6 +555,8 @@ impl<T> Vector<T> {
         unsafe { slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }
     }
 
+    /// Returns a reference to the first element, or `None` if the vector is
+    /// empty. This is O(1).
     pub fn first(&self) -> Option<&T> {
         if self.len > 0 {
             // SAFETY: `len > 0` means slot 0 is initialized.
@@ -312,6 +566,8 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns a mutable reference to the first element, or `None` if the
+    /// vector is empty. This is O(1).
     pub fn first_mut(&mut self) -> Option<&mut T> {
         if self.len > 0 {
             // SAFETY: `len > 0` and `&mut self` gives unique access.
@@ -321,6 +577,8 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns a reference to the last element, or `None` if the vector is
+    /// empty. This is O(1).
     pub fn last(&self) -> Option<&T> {
         if self.len > 0 {
             // SAFETY: `len > 0`, so slot `len - 1` is inside the allocation
@@ -331,6 +589,13 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Swaps the elements at `index1` and `index2`.
+    ///
+    /// This is O(1) and moves no other elements.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either index is out of bounds.
     pub fn swap(&mut self, index1: usize, index2: usize) {
         assert!(index1 < self.len, "index1 out of bounds");
         assert!(index2 < self.len, "index2 out of bounds");
@@ -342,6 +607,8 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns a mutable reference to the last element, or `None` if the vector
+    /// is empty. This is O(1).
     pub fn last_mut(&mut self) -> Option<&mut T> {
         if self.len > 0 {
             // SAFETY: `len > 0`, slot `len - 1` is initialized, and `&mut self`
@@ -352,6 +619,26 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Removes the element at `index` and returns it, filling the gap with the
+    /// last element.
+    ///
+    /// The element *at* `index` is the one returned; the order of the remaining
+    /// elements is **not** preserved. Unlike [`remove`](Self::remove) this is
+    /// O(1).
+    ///
+    /// Returns `None` if `index` is out of bounds rather than panicking.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..3).collect();
+    /// assert_eq!(vector.swap_remove(0), Some(0));
+    /// // The last element took the removed element's place.
+    /// assert_eq!(vector.as_slice(), &[2, 1]);
+    /// assert_eq!(vector.swap_remove(9), None);
+    /// ```
     pub fn swap_remove(&mut self, index: usize) -> Option<T> {
         if index >= self.len {
             return None;
@@ -361,6 +648,12 @@ impl<T> Vector<T> {
         self.remove(self.len - 1).into()
     }
 
+    /// Shortens the vector to at most `new_len` elements, dropping the removed
+    /// tail.
+    ///
+    /// Does nothing if `new_len >= len`, so it is never an error to pass a
+    /// length larger than the vector. Capacity is retained. This is O(number of
+    /// elements removed).
     pub fn truncate(&mut self, new_len: usize) {
         if new_len >= self.len {
             return;
@@ -377,6 +670,29 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Keeps only the elements for which `predicate` returns `true`, preserving
+    /// their relative order.
+    ///
+    /// The predicate is called with a shared reference to each element, in
+    /// index order, and the rejected elements are dropped. Note the polarity:
+    /// `retain` keeps matches, whereas
+    /// [`remove_where`](Self::remove_where) removes them.
+    ///
+    /// This is O(`len²`) in the worst case (each removal shifts the tail).
+    ///
+    /// If the predicate panics, the vector remains valid and every element is
+    /// still owned by exactly one place, but elements that were not yet visited
+    /// are left in place rather than dropped.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..6).collect();
+    /// vector.retain(|n| n % 2 == 0);
+    /// assert_eq!(vector.as_slice(), &[0, 2, 4]);
+    /// ```
     pub fn retain<F>(&mut self, mut predicate: F)
     where
         F: FnMut(&T) -> bool,
@@ -395,6 +711,14 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Keeps only the elements for which `predicate` returns `true`, allowing the
+    /// predicate to mutate the elements it keeps.
+    ///
+    /// The predicate is called with a mutable reference to each element, in
+    /// index order. Rejected elements are dropped after the predicate returns.
+    ///
+    /// This is O(`len²`) in the worst case. The same panic-safety note as
+    /// [`retain`](Self::retain) applies.
     pub fn retain_mut<F>(&mut self, mut predicate: F)
     where
         F: FnMut(&mut T) -> bool,
@@ -411,6 +735,13 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Removes every element equal to `value`.
+    ///
+    /// The relative order of the surviving elements is preserved. This is
+    /// O(`len²`) in the worst case because each removal shifts the tail.
+    ///
+    /// Note that `value` is consumed: it is dropped along with the matching
+    /// elements.
     pub fn remove_all(&mut self, value: T)
     where
         T: PartialEq,
@@ -426,6 +757,23 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Removes every element for which `predicate` returns `true`, preserving
+    /// the relative order of the survivors.
+    ///
+    /// This is the mirror image of [`retain`](Self::retain): `remove_where`
+    /// removes matches, `retain` keeps them.
+    ///
+    /// This is O(`len²`) in the worst case.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..6).collect();
+    /// vector.remove_where(|n| n % 2 == 0);
+    /// assert_eq!(vector.as_slice(), &[1, 3, 5]);
+    /// ```
     pub fn remove_where<F>(&mut self, mut predicate: F)
     where
         F: FnMut(&T) -> bool,
@@ -441,6 +789,13 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Removes every element for which `predicate` returns `true`, passing each
+    /// element to the predicate mutably so it can inspect or update it before
+    /// the decision is made.
+    ///
+    /// This is O(`len²`) in the worst case. The predicate is called with a
+    /// mutable reference, and any mutation it performs on a removed element is
+    /// discarded along with the element.
     pub fn remove_where_mut<F>(&mut self, mut predicate: F)
     where
         F: FnMut(&mut T) -> bool,
@@ -457,6 +812,25 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Removes every repeated value, keeping only the first occurrence of each
+    /// distinct value.
+    ///
+    /// This is a **set-like** operation: it compares every pair of elements, so
+    /// duplicates that are not adjacent are removed. To remove only
+    /// *consecutive* duplicates (the conventional vector behaviour), use
+    /// [`dedup`](Self::dedup).
+    ///
+    /// The order of first occurrences is preserved. This is O(`len²`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = vec![3, 1, 3, 2, 1].into_iter().collect();
+    /// vector.remove_duplicates();
+    /// assert_eq!(vector.as_slice(), &[3, 1, 2]);
+    /// ```
     pub fn remove_duplicates(&mut self)
     where
         T: PartialEq,
@@ -480,6 +854,25 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Removes *consecutive* repeated elements, keeping the first of each run.
+    ///
+    /// This matches the conventional vector semantics: it only compares adjacent
+    /// elements, so `[1, 1, 2, 1]` becomes `[1, 2, 1]`. To collapse duplicates
+    /// wherever they appear, use
+    /// [`remove_duplicates`](Self::remove_duplicates).
+    ///
+    /// This is O(`len²`) in the worst case because the tail is shifted for every
+    /// removal. Calling [`sort`](Self::sort) first makes the operation O(`len`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = vec![1, 1, 2, 2, 1].into_iter().collect();
+    /// vector.dedup();
+    /// assert_eq!(vector.as_slice(), &[1, 2, 1]);
+    /// ```
     pub fn dedup(&mut self)
     where
         T: PartialEq,
@@ -594,6 +987,18 @@ impl<T> Vector<T> {
         required.max(self.capacity.saturating_mul(2)).max(4)
     }
 
+    /// Reserves capacity for at least `additional` more elements.
+    ///
+    /// The vector may allocate more than requested; `capacity()` afterwards is
+    /// guaranteed to be at least `len + additional`. If the current capacity is
+    /// already sufficient this does nothing, so `reserve(0)` never reallocates.
+    /// Existing elements are preserved.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `len + additional` overflows `usize`, or if the resulting
+    /// element layout cannot be represented. Use
+    /// [`try_reserve`](Self::try_reserve) to handle those cases instead.
     pub fn reserve(&mut self, additional: usize) {
         let required = self
             .required_capacity(additional)
@@ -606,6 +1011,28 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Reduces the capacity to the current length.
+    ///
+    /// For an empty vector this releases the allocation entirely and leaves the
+    /// vector able to allocate again on the next push. Non-empty vectors keep
+    /// all their elements. Zero-sized element types own no allocation, so this
+    /// is a no-op for them.
+    ///
+    /// The allocator is free to honour this request only approximately, so only
+    /// the length and the contents are guaranteed afterwards.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = Vector::new();
+    /// vector.reserve(64);
+    /// vector.extend(0..4);
+    /// vector.shrink_to_fit();
+    /// assert!(vector.capacity() >= 4);
+    /// assert_eq!(vector.as_slice(), &[0, 1, 2, 3]);
+    /// ```
     pub fn shrink_to_fit(&mut self) {
         if Self::is_zst() {
             // A ZST owns no allocation, so there is nothing to shrink.
@@ -642,6 +1069,17 @@ impl<T> Vector<T> {
         self.capacity = self.len;
     }
 
+    /// Reserves capacity for exactly `additional` more elements.
+    ///
+    /// Unlike [`reserve`](Self::reserve) this does not over-allocate, which is
+    /// useful when the final size is known precisely. Existing elements are
+    /// preserved.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `len + additional` or the resulting element layout overflows.
+    /// Use [`try_reserve_exact`](Self::try_reserve_exact) to handle those cases
+    /// instead.
     pub fn reserve_exact(&mut self, additional: usize) {
         let required = self
             .required_capacity(additional)
@@ -650,6 +1088,17 @@ impl<T> Vector<T> {
         self.reallocate(required);
     }
 
+    /// Fallible version of [`reserve`](Self::reserve).
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err` if `len + additional` overflows `usize`, if the element
+    /// layout for the target capacity cannot be represented, or if the
+    /// allocation itself fails. On error the vector is completely untouched:
+    /// same pointer, length, capacity and contents.
+    ///
+    /// The error is a human-readable static string; the API deliberately does
+    /// not distinguish the failure kinds.
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), &'static str> {
         let required = self.required_capacity(additional)?;
 
@@ -661,12 +1110,38 @@ impl<T> Vector<T> {
         Ok(())
     }
 
+    /// Fallible version of [`reserve_exact`](Self::reserve_exact).
+    ///
+    /// # Errors
+    ///
+    /// As [`try_reserve`](Self::try_reserve), and on failure the vector is left
+    /// exactly as it was.
     pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), &'static str> {
         let required = self.required_capacity(additional)?;
 
         self.try_reallocate(required)
     }
 
+    /// Inserts `value` at `index`, shifting every element at or after `index`
+    /// one position to the right.
+    ///
+    /// This is O(`len`); inserting near the end is cheaper than inserting near
+    /// the front. Passing `index == len` is equivalent to
+    /// [`push`](Self::push).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index > len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..3).collect();
+    /// vector.insert(1, 9);
+    /// assert_eq!(vector.as_slice(), &[0, 9, 1, 2]);
+    /// ```
     pub fn insert(&mut self, index: usize, value: T) {
         assert!(index <= self.len, "index out of bounds");
 
@@ -690,6 +1165,28 @@ impl<T> Vector<T> {
         self.len += 1;
     }
 
+    /// Moves every element of `other` to the back of this vector, leaving
+    /// `other` empty.
+    ///
+    /// This is O(`other.len()`) plus any reallocation. No element is cloned or
+    /// dropped: ownership moves from `other` to `self`, and `other` keeps its
+    /// allocation so it can be reused.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the combined length overflows `usize`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut head: Vector<i32> = (0..2).collect();
+    /// let mut tail: Vector<i32> = (2..5).collect();
+    /// head.append(&mut tail);
+    /// assert_eq!(head.as_slice(), &[0, 1, 2, 3, 4]);
+    /// assert!(tail.is_empty());
+    /// ```
     pub fn append(&mut self, other: &mut Vector<T>) {
         let other_len = other.len;
 
@@ -728,12 +1225,22 @@ impl<T> Vector<T> {
         other.len = 0;
     }
 
+    /// Appends all items produced by `iter`.
+    ///
+    /// This is equivalent to the [`Extend`] implementation, which is what makes
+    /// `vector.extend(iter)` and `iter.collect::<Vector<_>>()` convenient. Both
+    /// are available; the inherent method simply takes precedence in method
+    /// resolution.
     pub fn extend(&mut self, iter: impl IntoIterator<Item = T>) {
         for item in iter {
             self.push(item);
         }
     }
 
+    /// Appends clones of every element in `slice`.
+    ///
+    /// The source slice is left untouched. This is O(`slice.len()`) plus any
+    /// reallocation. Requires `T: Clone`.
     pub fn extend_from_slice(&mut self, slice: &[T])
     where
         T: Clone,
@@ -745,6 +1252,11 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Resizes the vector to `new_len` elements.
+    ///
+    /// If `new_len` is larger, the vector is filled with clones of `value`. If
+    /// it is smaller, the extra elements are dropped. This is O(|`old_len` -
+    /// `new_len`|) plus any reallocation. Requires `T: Clone`.
     pub fn resize(&mut self, new_len: usize, value: T)
     where
         T: Clone,
@@ -761,6 +1273,11 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Resizes the vector to `new_len` elements, generating new values with `f`.
+    ///
+    /// Unlike [`resize`](Self::resize) this does not require `T: Clone`. `f` is
+    /// called once per added element and not at all when the vector is being
+    /// shortened. This is O(|`old_len` - `new_len`|) plus any reallocation.
     pub fn resize_with<F>(&mut self, new_len: usize, mut f: F)
     where
         F: FnMut() -> T,
@@ -777,6 +1294,29 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Splits the vector in two at `at`, returning everything from `at` onwards
+    /// as a new vector.
+    ///
+    /// `self` keeps the elements before `at`; the returned vector owns the rest.
+    /// No element is cloned or dropped, though the returned vector performs its
+    /// own allocation. `at == 0` returns a copy of the whole vector and empties
+    /// `self`; `at == len` returns an empty vector and changes nothing. This is
+    /// O(`len - at`).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `at > len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = (0..5).collect();
+    /// let tail = vector.split_off(3);
+    /// assert_eq!(vector.as_slice(), &[0, 1, 2]);
+    /// assert_eq!(tail.as_slice(), &[3, 4]);
+    /// ```
     pub fn split_off(&mut self, at: usize) -> Vector<T> {
         assert!(at <= self.len, "index out of bounds");
 
@@ -801,6 +1341,9 @@ impl<T> Vector<T> {
         new_vec
     }
 
+    /// Returns an iterator over shared references to the elements.
+    ///
+    /// This is equivalent to `for element in &vector`. This is O(1).
     pub fn iter(&self) -> VectorIter<'_, T> {
         VectorIter {
             vec: self,
@@ -808,6 +1351,9 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Returns an iterator over mutable references to the elements.
+    ///
+    /// This is equivalent to `for element in &mut vector`. This is O(1).
     pub fn iter_mut(&mut self) -> VectorIterMut<'_, T> {
         VectorIterMut {
             ptr: self.ptr.as_ptr(),
@@ -817,6 +1363,10 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Reverses the order of the elements in place.
+    ///
+    /// This is O(`len`) and moves no allocations. Empty and single-element
+    /// vectors are unaffected.
     pub fn reverse(&mut self) {
         // `len - 1` would underflow on an empty vector, so guard first. This is
         // also the natural "nothing to do" case.
@@ -834,6 +1384,20 @@ impl<T> Vector<T> {
         }
     }
 
+    /// Sorts the elements in ascending order.
+    ///
+    /// This is a stable sort: equal elements keep their relative order. This is
+    /// O(`len` log `len`) in the worst case. Requires `T: Ord`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = vec![3, 1, 2].into_iter().collect();
+    /// vector.sort();
+    /// assert_eq!(vector.as_slice(), &[1, 2, 3]);
+    /// ```
     pub fn sort(&mut self)
     where
         T: Ord,
@@ -841,6 +1405,10 @@ impl<T> Vector<T> {
         let slice = self.as_mut_slice();
         slice.sort();
     }
+    /// Sorts the elements using `compare`.
+    ///
+    /// `compare(a, b)` must return the ordering of `a` relative to `b`. The sort
+    /// is stable. This is O(`len` log `len`) in the worst case.
     pub fn sort_by<F>(&mut self, compare: F)
     where
         F: FnMut(&T, &T) -> std::cmp::Ordering,
@@ -849,6 +1417,13 @@ impl<T> Vector<T> {
         slice.sort_by(compare);
     }
 
+    /// Returns a raw immutable pointer to the first element's slot.
+    ///
+    /// The pointer is never null — an empty, never-allocated vector yields a
+    /// dangling but correctly aligned pointer — and `end() - begin()` equals
+    /// `len()`. It may only be dereferenced while the vector is alive and not
+    /// reallocated; prefer [`as_slice`](Self::as_slice) unless raw pointers are
+    /// genuinely needed. This is O(1).
     pub fn begin(&self) -> *const T {
         // Never null: an empty, never-allocated vector yields a dangling but
         // aligned pointer, which is what pointer arithmetic and comparisons
@@ -856,11 +1431,34 @@ impl<T> Vector<T> {
         self.ptr.as_ptr()
     }
 
+    /// Returns a raw immutable pointer one past the last element.
+    ///
+    /// The pointer is never null and is valid to compare against
+    /// [`begin`](Self::begin) and to use for pointer arithmetic; it must not be
+    /// dereferenced. This is O(1).
     pub fn end(&self) -> *const T {
         // SAFETY: `len <= capacity`, so one-past-the-end is in bounds. For a
         // ZST the pointer never moves, which is also correct for `len` elements.
         unsafe { self.ptr.as_ptr().add(self.len) }
     }
+    /// Sorts the half-open range `start..end` of elements in ascending order.
+    ///
+    /// The element at `end` is **not** included in the sort. The sort is stable.
+    /// This is O(`n` log `n`) in the length of the range. Requires `T: Ord`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `start > end` or `end > len`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let mut vector: Vector<i32> = vec![9, 8, 3, 1, 2, 0].into_iter().collect();
+    /// vector.sort_range(2, 5);
+    /// assert_eq!(vector.as_slice(), &[9, 8, 1, 2, 3, 0]);
+    /// ```
     pub fn sort_range(&mut self, start: usize, end: usize)
     where
         T: Ord,
@@ -870,31 +1468,116 @@ impl<T> Vector<T> {
 
         self.as_mut_slice()[start..end].sort();
     }
+    /// Binary-searches a sorted vector for `value`.
+    ///
+    /// Returns `Ok(index)` for a matching element — if several match, any one of
+    /// them may be returned — or `Err(insertion_index)`, the position at which
+    /// `value` could be inserted while keeping the vector sorted.
+    ///
+    /// **The elements must already be sorted** (for example with
+    /// [`sort`](Self::sort)); the result is unspecified otherwise. This is
+    /// O(log `len`) on each comparison.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let vector: Vector<i32> = (0..6).map(|n| n * 2).collect();
+    /// assert_eq!(vector.binary_search(&4), Ok(2));
+    /// assert_eq!(vector.binary_search(&5), Err(3));
+    /// ```
     pub fn binary_search(&self, value: &T) -> Result<usize, usize>
     where
         T: Ord,
     {
         self.as_slice().binary_search(value)
     }
+    /// Rotates the elements `mid` places to the left.
+    ///
+    /// `[a, b, c, d]` rotated left by 1 becomes `[b, c, d, a]`. This is O(`len`)
+    /// and moves no allocations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.
     pub fn rotate_left(&mut self, mid: usize) {
         assert!(mid <= self.len, "mid out of bounds");
 
         self.as_mut_slice().rotate_left(mid);
     }
+    /// Rotates the elements `mid` places to the right.
+    ///
+    /// `[a, b, c, d]` rotated right by 1 becomes `[d, a, b, c]`. This is O(`len`)
+    /// and moves no allocations.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.
     pub fn rotate_right(&mut self, mid: usize) {
         assert!(mid <= self.len, "mid out of bounds");
 
         self.as_mut_slice().rotate_right(mid);
     }
+    /// Divides the vector into two slices at `mid`.
+    ///
+    /// Returns `(before, after)` where `before` holds `0..mid` and `after` holds
+    /// `mid..len`. The two slices do not overlap and neither is a copy. This is
+    /// O(1).
+    ///
+    /// # Panics
+    ///
+    /// Panics if `mid > len`.
     pub fn split_at(&self, mid: usize) -> (&[T], &[T]) {
         self.as_slice().split_at(mid)
     }
+    /// Returns an iterator over all **overlapping** windows of `size` elements.
+    ///
+    /// Windows advance one element at a time, so they share elements with their
+    /// neighbours. A `size` of 0 panics, and a `size` larger than the vector
+    /// yields no windows. Use [`chunks`](Self::chunks) for non-overlapping
+    /// slices. This is O(1) to create.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let vector: Vector<i32> = (0..4).collect();
+    /// let windows: Vec<&[i32]> = vector.windows(2).collect();
+    /// assert_eq!(windows, vec![&[0, 1][..], &[1, 2][..], &[2, 3][..]]);
+    /// ```
     pub fn windows(&self, size: usize) -> std::slice::Windows<'_, T> {
         self.as_slice().windows(size)
     }
+    /// Returns an iterator over **non-overlapping** chunks of at most `size`
+    /// elements.
+    ///
+    /// Every element appears in exactly one chunk; the final chunk may be
+    /// shorter. A `size` of 0 panics. Use [`windows`](Self::windows) for
+    /// overlapping views. This is O(1) to create.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rust_stl::collections::vector::Vector;
+    ///
+    /// let vector: Vector<i32> = (0..5).collect();
+    /// let chunks: Vec<&[i32]> = vector.chunks(2).collect();
+    /// assert_eq!(chunks, vec![&[0, 1][..], &[2, 3][..], &[4][..]]);
+    /// ```
     pub fn chunks(&self, size: usize) -> std::slice::Chunks<'_, T> {
         self.as_slice().chunks(size)
     }
+    /// Binary-searches a sorted vector with a comparator.
+    ///
+    /// `compare` receives a reference to an element and returns its ordering
+    /// relative to the value being searched for. This is the general form of
+    /// [`binary_search`](Self::binary_search) for types that are not directly
+    /// comparable.
+    ///
+    /// **The elements must already be sorted according to `compare`.** This is
+    /// O(log `len`) calls to `compare`.
     pub fn binary_search_by<F>(&self, compare: F) -> Result<usize, usize>
     where
         F: FnMut(&T) -> std::cmp::Ordering,
@@ -902,6 +1585,11 @@ impl<T> Vector<T> {
         self.as_slice().binary_search_by(compare)
     }
 
+    /// Binary-searches a sorted vector by mapping each element to a key.
+    ///
+    /// `f` extracts the comparison key from an element and the result is used as
+    /// in [`binary_search`](Self::binary_search). **The elements must already be
+    /// sorted by the extracted key.** This is O(log `len`) calls to `f`.
     pub fn binary_search_by_key<B, F>(&self, key: &B, f: F) -> Result<usize, usize>
     where
         B: Ord,
