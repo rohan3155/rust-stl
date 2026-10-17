@@ -38,7 +38,9 @@ path = "examples/vector/iteration.rs"
 
 # The benchmark is a hand-rolled, dependency-free harness rather than a
 # libtest/criterion benchmark, so the default harness is disabled. See
-# `benches/vector.rs` for what it does and does not claim.
+# `benches/vector/main.rs` for what it does and does not claim. Benchmarks are
+# grouped by collection, so the path is declared explicitly.
 [[bench]]
 name = "vector"
+path = "benches/vector/main.rs"
 harness = false
