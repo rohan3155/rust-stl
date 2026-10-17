@@ -13,5 +13,5 @@
 //! stack/queue, but **none of them are implemented**. Do not expect modules or
 //! types for them to exist.
 
-pub mod vector;
 pub mod stack;
+pub mod vector;
