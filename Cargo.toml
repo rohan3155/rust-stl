@@ -16,6 +16,26 @@ categories = ["data-structures", "algorithms"]
 # justification in the pull request that adds it.
 [dependencies]
 
+# Examples are grouped by collection under `examples/<collection>/`. Cargo only
+# auto-discovers `examples/*.rs` and `examples/*/main.rs`, so the nested,
+# namespaced examples are declared explicitly here. The target names are kept
+# stable (`basic_usage`, `iteration`, …) so existing commands keep working.
+[[example]]
+name = "basic_usage"
+path = "examples/vector/basic_usage.rs"
+
+[[example]]
+name = "capacity_management"
+path = "examples/vector/capacity_management.rs"
+
+[[example]]
+name = "filtering_and_sorting"
+path = "examples/vector/filtering_and_sorting.rs"
+
+[[example]]
+name = "iteration"
+path = "examples/vector/iteration.rs"
+
 # The benchmark is a hand-rolled, dependency-free harness rather than a
 # libtest/criterion benchmark, so the default harness is disabled. See
 # `benches/vector.rs` for what it does and does not claim.
