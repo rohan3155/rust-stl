@@ -29,6 +29,16 @@ and this project intends to follow [Semantic Versioning](https://semver.org/spec
   * ordering and searching: `sort`, `sort_by`, `sort_range`, `binary_search`,
     `binary_search_by`, `binary_search_by_key`, `rotate_left`, `rotate_right`;
   * slicing: `split_at`, `windows`, `chunks`, `begin`, `end`.
+* `Stack<T>`, a last-in, first-out (LIFO) stack backed by `Vector<T>`, with:
+  * core operations: `new`, `push`, `pop`, `top`, `top_mut`, `len`, `is_empty`,
+    `clear`;
+  * capacity: `with_capacity`, `capacity`, `reserve`, `reserve_exact`,
+    `shrink_to_fit`;
+  * `swap`, plus documented `get`/`get_mut` escape hatches into the backing
+    storage;
+  * standard traits: `Debug`, `Clone`, `PartialEq`, `Eq`, `Default`, `Extend`,
+    `FromIterator` and `IntoIterator` for `Stack<T>`, `&Stack<T>` and
+    `&mut Stack<T>`.
 * Iteration in all three ownership forms — `&Vector<T>`, `&mut Vector<T>` and
   `Vector<T>` — with `ExactSizeIterator`, `FusedIterator` and (for the owned
   iterator) `DoubleEndedIterator`.
@@ -37,11 +47,13 @@ and this project intends to follow [Semantic Versioning](https://semver.org/spec
 * Support for zero-sized element types, including ZSTs that implement `Drop`.
 * Crate-level, module-level and per-method documentation, with compiled and run
   doctests.
-* Four runnable examples: `basic_usage`, `iteration`,
-  `filtering_and_sorting`, `capacity_management`.
-* An integration test suite organised by behaviour, plus unit tests for private
-  invariants. It covers exact destructor counts, panic safety, zero-sized types,
-  capacity/overflow behaviour and all three iteration forms.
+* Runnable examples grouped by collection: `basic_usage`, `iteration`,
+  `filtering_and_sorting` and `capacity_management` for the vector, plus
+  `stack_basic_usage` and `stack_iteration` for the stack.
+* An integration test suite organised by collection and behaviour, plus unit
+  tests for private invariants. It covers exact destructor counts, panic safety,
+  zero-sized types, capacity/overflow behaviour and all three iteration forms,
+  for both `Vector<T>` and `Stack<T>`.
 * A dependency-free micro-benchmark (`cargo bench --bench vector`).
 * `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, and dual `MIT OR Apache-2.0`
   licensing.
@@ -98,6 +110,10 @@ section is worth reading in full.
   (`rust-stl`) is unchanged.
 * Indexing now delegates to slice indexing, so range indexing such as
   `vector[1..3]` works and two hand-written `unsafe` blocks were removed.
+* Integration tests, examples and the benchmark are organised by collection
+  (`tests/vector/`, `tests/stack/`, `examples/vector/`, `examples/stack/`,
+  `benches/vector/`). Existing test, example and benchmark target names are
+  unchanged.
 * The whole repository is formatted with `rustfmt` and lints clean under
   `cargo clippy --all-targets --all-features -- -D warnings`.
 
@@ -108,8 +124,12 @@ section is worth reading in full.
 * `retain`, `retain_mut`, `remove_where`, `remove_where_mut`, `remove_all`,
   `dedup` and `remove_duplicates` remove elements by shifting the tail, so their
   worst case is O(n²).
-* The API is a subset of `std::vec::Vec`; `with_capacity`, `drain`, `splice` and
-  fallible range indexing are not implemented.
+* The API is a subset of `std::vec::Vec`; `drain`, `splice` and fallible range
+  indexing are not implemented.
+* `Stack<T>` iterates from the bottom to the top — the reverse of its pop order —
+  because it forwards to the backing `Vector`. Use `into_iter().rev()` for pop
+  order. `get`/`get_mut` expose interior positions by index as a documented
+  escape hatch.
 * `Clone` (and other bulk operations) apply `clone()` element by element and do
   not specialise for `T: Copy` the way `Vec` does, so cloning a vector of `Copy`
   types is slower. Correct, just not `memcpy`-optimised.
