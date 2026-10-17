@@ -303,6 +303,23 @@ impl<T> Vector<T> {
         }
     }
 
+    pub fn with_capacity(capacity: usize) -> Self {
+        if capacity == 0 {
+            return Self::new();
+        }
+
+        // SAFETY: `capacity > 0` and `T` is not zero-sized, so `allocate` will
+        // return a valid pointer to a block of memory large enough for
+        // `capacity` elements.
+        let ptr = unsafe { Self::allocate(capacity) };
+
+        Self {
+            ptr,
+            len: 0,
+            capacity,
+        }
+    }
+
     fn grow(&mut self) {
         if Self::is_zst() {
             // ZSTs are stored inline in the pointer, so there is nothing to
