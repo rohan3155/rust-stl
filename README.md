@@ -4,22 +4,28 @@ An educational, dependency-free reimplementation of classic STL-style
 containers in Rust, written with raw pointers and manual allocation so the
 memory-management machinery is visible instead of hidden.
 
-The crate currently provides one container: **`Vector<T>`**, a growable,
-contiguous, heap-allocated array.
+The crate currently provides two containers:
+
+* **`Vector<T>`**, a growable, contiguous, heap-allocated array; and
+* **`Stack<T>`**, a last-in, first-out (LIFO) stack that reuses `Vector<T>` as
+  its backing storage rather than duplicating any memory-management code.
 
 ## Status and maturity
 
 **Development-ready, not published.**
 
-* `Vector<T>` is implemented and covered by an extensive test suite, including
-  exact destructor-count, panic-safety and zero-sized-type tests.
+* `Vector<T>` and `Stack<T>` are implemented and covered by an extensive test
+  suite, including exact destructor-count, panic-safety and zero-sized-type
+  tests.
 * The crate has **not** been published to crates.io.
-* It is **not** benchmarked against `std::collections`. No performance claims
-  are made anywhere in this repository.
+* It ships only a small sanity micro-benchmark, not a rigorous benchmark. No
+  performance claims are made anywhere in this repository.
 * The API is a **subset** of `std::vec::Vec`. Breaking changes are expected
   before `1.0`.
 
 ## Features
+
+### `Vector<T>`
 
 * `Vector<T>` with indexing (`vector[i]`, including ranges like `vector[1..3]`),
   `get`/`get_mut`, `first`/`last`, `push`/`pop`, `insert`/`remove`/
@@ -37,6 +43,19 @@ contiguous, heap-allocated array.
 * All three iteration forms (`&Vector<T>`, `&mut Vector<T>`, `Vector<T>`) with
   `ExactSizeIterator`, `FusedIterator` and `DoubleEndedIterator` on the owned
   iterator.
+
+### `Stack<T>`
+
+* A LIFO stack: `push`, `pop`, `top`, `top_mut`, `len`, `is_empty`, `clear`.
+* Capacity control: `with_capacity`, `capacity`, `reserve`, `reserve_exact`,
+  `shrink_to_fit`.
+* `Debug`, `Clone`, `PartialEq`/`Eq`, `Default`, `Extend`, `FromIterator` and all
+  three `IntoIterator` forms.
+* Backed by `Vector<T>`, so it inherits the vector's allocation strategy and
+  zero-sized-type handling without reimplementing any of it.
+
+### Shared
+
 * Full support for **zero-sized element types**, including ZSTs with `Drop`.
 * No runtime dependencies.
 
@@ -88,6 +107,24 @@ assert_eq!(total, 60);
 
 let owned: Vec<i32> = numbers.into_iter().collect();
 assert_eq!(owned, vec![10, 20, 30]);
+```
+
+And a first look at the stack:
+
+```rust
+use rust_stl::collections::stack::Stack;
+
+let mut history: Stack<String> = Stack::new();
+history.push("first".to_string());
+history.push("second".to_string());
+
+// The most recent push is on top.
+assert_eq!(history.top(), Some(&"second".to_string()));
+
+// Popping is last-in, first-out; an empty stack yields `None`, never a panic.
+assert_eq!(history.pop(), Some("second".to_string()));
+assert_eq!(history.pop(), Some("first".to_string()));
+assert_eq!(history.pop(), None);
 ```
 
 ## API examples
@@ -218,11 +255,54 @@ let rejoined = vector.into_iter().collect::<Vec<_>>().join(",");
 assert_eq!(rejoined, "a,b,c");
 ```
 
+### Stacks: push, inspect and pop
+
+```rust
+use rust_stl::collections::stack::Stack;
+
+let mut stack: Stack<i32> = Stack::new();
+stack.push(1);
+stack.push(2);
+stack.push(3);
+
+// `top` borrows the newest element; `top_mut` updates it in place.
+assert_eq!(stack.top(), Some(&3));
+*stack.top_mut().unwrap() *= 10;
+assert_eq!(stack.top(), Some(&30));
+
+// Last-in, first-out removal.
+assert_eq!(stack.pop(), Some(30));
+assert_eq!(stack.pop(), Some(2));
+assert_eq!(stack.len(), 1);
+```
+
+### Stacks: iterating, collecting and traits
+
+```rust
+use rust_stl::collections::stack::Stack;
+
+// `collect` pushes in order, so the last value ends up on top.
+let stack: Stack<i32> = (0..4).collect();
+assert_eq!(format!("{stack:?}"), "[0, 1, 2, 3]");
+
+// Iteration walks from the bottom to the top. The owned iterator is
+// double-ended, so `rev` visits the elements in pop order instead.
+let bottom_up: Vec<i32> = (&stack).into_iter().copied().collect();
+assert_eq!(bottom_up, vec![0, 1, 2, 3]);
+
+let pop_order: Vec<i32> = stack.clone().into_iter().rev().collect();
+assert_eq!(pop_order, vec![3, 2, 1, 0]);
+
+// A clone owns independent values; equality compares contents, not capacity.
+let clone = stack.clone();
+assert_eq!(clone, stack);
+```
+
 ## Capabilities and limitations
 
-* **Subset of `Vec`.** `with_capacity`, `drain`, `splice`, `into_iter` adapters
-  beyond `DoubleEndedIterator`, and fallible range indexing are not provided.
-  `get` takes a `usize` index only, not a range.
+* **Subset of `Vec`.** `drain`, `splice`, `into_iter` adapters beyond
+  `DoubleEndedIterator`, and fallible range indexing are not provided. `get`
+  takes a `usize` index only, not a range.
 * **Fallible reservation is coarse.** `try_reserve` and `try_reserve_exact`
   return `Result<(), &'static str>`. Capacity overflow and allocation failure
   both surface as a string and are not distinguished.
@@ -242,6 +322,11 @@ assert_eq!(rejoined, "a,b,c");
   over the elements rather than specialising for `T: Copy` to a `memcpy`, so
   cloning a vector of `Copy` types is slower than `Vec::clone`. Behaviour is
   identical; only the constant factor differs.
+* **The stack iterates bottom-to-top.** `Stack<T>` iterates from the bottom of
+  the stack to the top — the reverse of its pop order — because it forwards to
+  the backing `Vector`. Use `into_iter().rev()` for pop order. The `get` and
+  `get_mut` accessors expose interior positions by index as a documented escape
+  hatch; ordinary stack use goes through `top`/`top_mut` and `pop`.
 
 ## Performance and complexity
 
@@ -257,6 +342,15 @@ Complexity is documented per method in the API docs. The summary for
 | `sort` | O(n log n) | O(n log n) |
 | `binary_search` | O(log n) | O(log n) |
 | `retain` / `dedup` / `remove_where` | O(n) | O(n²) |
+
+The summary for `Stack<T>`:
+
+| Operation | Average | Worst case |
+|---|---|---|
+| `push` | O(1) | O(n) when the capacity is exceeded |
+| `pop` / `top` / `top_mut` | O(1) | O(1) |
+| `clear` | O(n) | O(n) |
+| `reserve` / `reserve_exact` / `shrink_to_fit` | O(n) | O(n) |
 
 These are algorithmic bounds, not measured results, and no claims are made about
 constant factors relative to `std::vec::Vec`.
@@ -285,16 +379,30 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --check
 ```
 
-The test suite is organised by behaviour:
+The test suite is organised by collection and by behaviour. Cargo only treats
+files directly under `tests/` as test crates, so `tests/vector.rs` and
+`tests/stack.rs` each include their behaviour modules by path.
+
+For `Vector<T>`:
 
 | File | Covers |
 |---|---|
-| `tests/core_behavior.rs` | Construction, growth, indexing, mutation, filtering, sorting, searching, rotation and slicing |
-| `tests/capacity.rs` | Reservation, shrinking, retained capacity, and overflow/error paths |
-| `tests/edge_cases.rs` | Empty and single-element vectors, zero-sized types, non-`Copy` values, nested vectors, empty `append`/`split_off` |
-| `tests/iterators.rs` | The three iteration forms, `size_hint`, `ExactSizeIterator`, `FusedIterator`, `DoubleEndedIterator`, early drop |
-| `tests/memory_safety.rs` | Exact destructor counts for every destructive operation, plus panicking predicates, `Clone` and `PartialEq` |
-| `tests/traits.rs` | `Debug`, `Clone`, `PartialEq`/`Eq`, `Deref`/`DerefMut`, `Index`/`IndexMut`, `Extend`, `FromIterator`, `IntoIterator` |
+| `tests/vector/core_behavior.rs` | Construction, growth, indexing, mutation, filtering, sorting, searching, rotation and slicing |
+| `tests/vector/capacity.rs` | Reservation, shrinking, retained capacity, and overflow/error paths |
+| `tests/vector/edge_cases.rs` | Empty and single-element vectors, zero-sized types, non-`Copy` values, nested vectors, empty `append`/`split_off` |
+| `tests/vector/iterators.rs` | The three iteration forms, `size_hint`, `ExactSizeIterator`, `FusedIterator`, `DoubleEndedIterator`, early drop |
+| `tests/vector/memory_safety.rs` | Exact destructor counts for every destructive operation, plus panicking predicates, `Clone` and `PartialEq` |
+| `tests/vector/traits.rs` | `Debug`, `Clone`, `PartialEq`/`Eq`, `Deref`/`DerefMut`, `Index`/`IndexMut`, `Extend`, `FromIterator`, `IntoIterator` |
+
+For `Stack<T>`:
+
+| File | Covers |
+|---|---|
+| `tests/stack/core_behavior.rs` | Empty-stack behaviour, LIFO ordering, push/pop sequences, `top`/`top_mut`, `clear`, single-element and non-`Copy` values |
+| `tests/stack/capacity.rs` | Growth, `with_capacity`, `reserve`, `reserve_exact`, `shrink_to_fit`, retained capacity |
+| `tests/stack/edge_cases.rs` | Empty and single-element stacks, `swap`, zero-sized and nested values, large stacks |
+| `tests/stack/memory_safety.rs` | Exact destructor counts for drop, clear and pop, plus zero-sized values with `Drop` |
+| `tests/stack/traits.rs` | `Debug`, `Clone`, `PartialEq`/`Eq`, `Default`, `Extend`, `FromIterator` and all three iteration forms |
 
 The unit tests in `src/collections/vector.rs` additionally check private
 invariants (layout overflow, growth arithmetic, dangling-pointer handling, the
@@ -324,12 +432,17 @@ Published API docs (once the crate is released) will be at
 
 Each example is self-contained and runs with `cargo run --example <name>`:
 
-| Example | Demonstrates |
-|---|---|
-| `examples/basic_usage.rs` | Construction, push vs. insert, indexing vs. `get`, updating, iteration, `remove` vs. `swap_remove`, sorting, searching |
-| `examples/iteration.rs` | All three iteration forms, in-place mutation, the double-ended owned iterator, zero-sized types |
-| `examples/filtering_and_sorting.rs` | `retain` vs. `remove_where`, `dedup` vs. `remove_duplicates`, sorting, binary search, rotation, `windows` vs. `chunks` |
-| `examples/capacity_management.rs` | Reservation, retained capacity, `shrink_to_fit`, fallible reservation |
+| Example (target name) | Source | Demonstrates |
+|---|---|---|
+| `basic_usage` | `examples/vector/basic_usage.rs` | Construction, push vs. insert, indexing vs. `get`, updating, iteration, `remove` vs. `swap_remove`, sorting, searching |
+| `iteration` | `examples/vector/iteration.rs` | All three iteration forms, in-place mutation, the double-ended owned iterator, zero-sized types |
+| `filtering_and_sorting` | `examples/vector/filtering_and_sorting.rs` | `retain` vs. `remove_where`, `dedup` vs. `remove_duplicates`, sorting, binary search, rotation, `windows` vs. `chunks` |
+| `capacity_management` | `examples/vector/capacity_management.rs` | Reservation, retained capacity, `shrink_to_fit`, fallible reservation |
+| `stack_basic_usage` | `examples/stack/basic_usage.rs` | Stack construction, `push`, `top`/`top_mut`, LIFO `pop`, empty-stack behaviour, `collect`, `clear` |
+| `stack_iteration` | `examples/stack/iteration.rs` | All three iteration forms over a stack, in-place mutation, pop order via `rev`, zero-sized types |
+
+The stack examples use a `stack_` prefix because Cargo derives a target name from
+the file name, and both collections have a `basic_usage` and an `iteration`.
 
 ## Project structure
 
@@ -343,27 +456,42 @@ rust-stl/
 ├── SECURITY.md
 ├── LICENSE-MIT
 ├── LICENSE-APACHE
-├── .github/workflows/ci.yml   formatting, lints, tests, docs, MSRV
+├── .github/workflows/ci.yml    formatting, lints, tests, docs, MSRV
 ├── src/
-│   ├── lib.rs                 crate-level documentation
+│   ├── lib.rs                  crate-level documentation
 │   └── collections/
 │       ├── mod.rs
-│       └── vector.rs          Vector<T>, its iterators and unit tests
-├── examples/                  runnable examples (see above)
-├── benches/vector.rs          dependency-free micro-benchmark
-└── tests/                     integration test suite (see above)
+│       ├── stack.rs            Stack<T> and its trait implementations
+│       └── vector.rs           Vector<T>, its iterators and unit tests
+├── examples/
+│   ├── stack/                  Stack examples (see above)
+│   └── vector/                 Vector examples (see above)
+├── benches/
+│   └── vector/main.rs          dependency-free micro-benchmark
+└── tests/
+    ├── common/mod.rs           shared test helpers
+    ├── stack.rs                stack test crate root
+    ├── stack/                  stack behaviour modules (see above)
+    ├── vector.rs               vector test crate root
+    └── vector/                 vector behaviour modules (see above)
 ```
 
 ## Roadmap
 
-* No new containers are implemented yet. A doubly linked list, a hash map and a
-  stack/queue are ideas, **not** existing code — this README will be updated when
-  and only if they exist.
-* Planned improvements to `Vector<T>`:
+### Implemented
+
+* `Vector<T>` — a growable, contiguous, heap-allocated array.
+* `Stack<T>` — a LIFO adaptor over `Vector<T>`.
+
+### Planned
+
+* A doubly linked list and a hash map. These are ideas, **not** existing code —
+  this README will be updated when and only if they exist.
+* Improvements to `Vector<T>`:
   * linear-time `retain`/`dedup`/`remove_where`;
   * a structured error type for the fallible reservation methods;
-  * a statistically sound benchmark suite (the current one is a sanity check);
-  * a Miri job in CI.
+  * a statistically sound benchmark suite (the current one is a sanity check).
+* A Miri job in CI to exercise the `unsafe` code under the interpreter.
 
 ## Contributing
 
