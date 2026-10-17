@@ -48,6 +48,12 @@ impl<T> Stack<T> {
     pub fn capacity(&self) -> usize {
         self.data.capacity()
     }
+    pub fn reserve(&mut self, additional: usize) {
+        self.data.reserve(additional);
+    }
+    pub fn reserve_exact(&mut self, additional: usize) {
+        self.data.reserve_exact(additional);
+    }
 }
 
 impl<T> Default for Stack<T> {
