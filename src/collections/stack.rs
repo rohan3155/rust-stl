@@ -1,4 +1,3 @@
-
 use crate::collections::vector::Vector;
 pub struct Stack<T> {
     data: Vector<T>,
@@ -42,6 +41,9 @@ impl<T> Stack<T> {
         Self {
             data: Vector::with_capacity(capacity),
         }
+    }
+    pub fn swap(&mut self, other: &mut Self) {
+        std::mem::swap(self, other);
     }
 }
 
