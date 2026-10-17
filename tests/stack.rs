@@ -12,3 +12,9 @@ mod capacity;
 
 #[path = "stack/core_behavior.rs"]
 mod core_behavior;
+
+#[path = "stack/edge_cases.rs"]
+mod edge_cases;
+
+#[path = "stack/memory_safety.rs"]
+mod memory_safety;
