@@ -357,17 +357,18 @@ constant factors relative to `std::vec::Vec`.
 
 ### Benchmarking
 
-The repository ships a small, dependency-free micro-benchmark that runs a few
-representative operations against `std::vec::Vec` side by side:
+The repository ships small, dependency-free micro-benchmarks that run a few
+representative operations against the standard library side by side:
 
 ```sh
-cargo bench --bench vector
+cargo bench --bench vector   # Vector<T> vs std::vec::Vec
+cargo bench --bench stack    # Stack<T>  vs std::vec::Vec used as a stack
 ```
 
-It prints the best of a handful of repetitions for each operation. It is a
-sanity harness for spotting gross regressions while working on the
-implementation — **not** a rigorous benchmark. There is no statistical analysis
-or load isolation, so its numbers are not guarantees and are deliberately not
+Each prints the best of a handful of repetitions for each operation. They are
+sanity harnesses for spotting gross regressions while working on the
+implementation — **not** rigorous benchmarks. There is no statistical analysis
+or load isolation, so their numbers are not guarantees and are deliberately not
 quoted in this README.
 
 ## Testing
@@ -467,6 +468,7 @@ rust-stl/
 │   ├── stack/                  Stack examples (see above)
 │   └── vector/                 Vector examples (see above)
 ├── benches/
+│   ├── stack/main.rs           dependency-free micro-benchmark
 │   └── vector/main.rs          dependency-free micro-benchmark
 └── tests/
     ├── common/mod.rs           shared test helpers

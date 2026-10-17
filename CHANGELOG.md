@@ -54,7 +54,8 @@ and this project intends to follow [Semantic Versioning](https://semver.org/spec
   tests for private invariants. It covers exact destructor counts, panic safety,
   zero-sized types, capacity/overflow behaviour and all three iteration forms,
   for both `Vector<T>` and `Stack<T>`.
-* A dependency-free micro-benchmark (`cargo bench --bench vector`).
+* Dependency-free micro-benchmarks (`cargo bench --bench vector`,
+  `cargo bench --bench stack`).
 * `README.md`, `CONTRIBUTING.md`, `SECURITY.md`, and dual `MIT OR Apache-2.0`
   licensing.
 * GitHub Actions CI: formatting, clippy with warnings denied, tests, doctests,
@@ -110,10 +111,10 @@ section is worth reading in full.
   (`rust-stl`) is unchanged.
 * Indexing now delegates to slice indexing, so range indexing such as
   `vector[1..3]` works and two hand-written `unsafe` blocks were removed.
-* Integration tests, examples and the benchmark are organised by collection
+* Integration tests, examples and benchmarks are organised by collection
   (`tests/vector/`, `tests/stack/`, `examples/vector/`, `examples/stack/`,
-  `benches/vector/`). Existing test, example and benchmark target names are
-  unchanged.
+  `benches/vector/`, `benches/stack/`). Existing test, example and benchmark
+  target names are unchanged.
 * The whole repository is formatted with `rustfmt` and lints clean under
   `cargo clippy --all-targets --all-features -- -D warnings`.
 
