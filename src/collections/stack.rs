@@ -1,5 +1,6 @@
 use crate::collections::vector::Vector;
 use crate::collections::vector::VectorIntoIter;
+use crate::collections::vector::VectorIter;
 use std::fmt::Debug;
 use std::iter::Extend;
 use std::iter::FromIterator;
@@ -126,5 +127,14 @@ impl<T> IntoIterator for Stack<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Stack<T> {
+    type Item = &'a T;
+    type IntoIter = VectorIter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter()
     }
 }
