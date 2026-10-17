@@ -52,3 +52,10 @@ path = "examples/stack/iteration.rs"
 name = "vector"
 path = "benches/vector/main.rs"
 harness = false
+
+# A second hand-rolled harness for the stack, measured against a `Vec` used as a
+# stack (the standard library has no stack type). See `benches/stack/main.rs`.
+[[bench]]
+name = "stack"
+path = "benches/stack/main.rs"
+harness = false
