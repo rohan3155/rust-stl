@@ -1,5 +1,6 @@
 use crate::collections::vector::Vector;
 use std::fmt::Debug;
+use std::iter::Extend;
 pub struct Stack<T> {
     data: Vector<T>,
 }
@@ -102,3 +103,9 @@ where
 }
 
 impl<T> Eq for Stack<T> where T: Eq {}
+
+impl<T> Extend<T> for Stack<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        self.data.extend(iter);
+    }
+}
