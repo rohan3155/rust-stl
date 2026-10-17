@@ -55,6 +55,8 @@ jobs:
           cargo run --quiet --example iteration
           cargo run --quiet --example filtering_and_sorting
           cargo run --quiet --example capacity_management
+          cargo run --quiet --example stack_basic_usage
+          cargo run --quiet --example stack_iteration
 
       - name: Build the documentation (warnings denied)
         env:
