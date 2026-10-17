@@ -1,4 +1,5 @@
 use crate::collections::vector::Vector;
+use std::fmt::Debug;
 pub struct Stack<T> {
     data: Vector<T>,
 }
@@ -68,5 +69,14 @@ impl<T> Stack<T> {
 impl<T> Default for Stack<T> {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T> Debug for Stack<T>
+where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.data.iter()).finish()
     }
 }
