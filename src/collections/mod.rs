@@ -14,3 +14,4 @@
 //! types for them to exist.
 
 pub mod vector;
+pub mod stack;
