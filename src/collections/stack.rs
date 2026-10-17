@@ -1,6 +1,7 @@
 use crate::collections::vector::Vector;
 use std::fmt::Debug;
 use std::iter::Extend;
+use std::iter::FromIterator;
 pub struct Stack<T> {
     data: Vector<T>,
 }
@@ -107,5 +108,13 @@ impl<T> Eq for Stack<T> where T: Eq {}
 impl<T> Extend<T> for Stack<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         self.data.extend(iter);
+    }
+}
+
+impl<T> FromIterator<T> for Stack<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut stack = Stack::new();
+        stack.extend(iter);
+        stack
     }
 }
