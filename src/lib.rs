@@ -20,10 +20,11 @@
 //! | Type | Module | Description |
 //! |---|---|---|
 //! | [`Vector<T>`](collections::vector::Vector) | [`collections::vector`] | Growable, contiguous, heap-allocated array |
+//! | [`Stack<T>`](collections::stack::Stack) | [`collections::stack`] | Last-in, first-out (LIFO) stack backed by a `Vector` |
 //!
-//! Only [`Vector`](collections::vector::Vector) is implemented today; the other
-//! containers listed in the repository's roadmap do not exist yet and are not
-//! part of this crate's API.
+//! These two containers are the implemented API today; the other containers
+//! listed in the repository's roadmap do not exist yet and are not part of this
+//! crate.
 //!
 //! ## Quick start
 //!
@@ -74,5 +75,7 @@
 //! * [`collections`] — one module per container.
 //!   * [`collections::vector`] — [`Vector<T>`](collections::vector::Vector) and
 //!     its iterators.
+//!   * [`collections::stack`] — [`Stack<T>`](collections::stack::Stack), a LIFO
+//!     adaptor over `Vector`.
 
 pub mod collections;
