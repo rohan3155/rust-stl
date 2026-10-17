@@ -36,6 +36,14 @@ path = "examples/vector/filtering_and_sorting.rs"
 name = "iteration"
 path = "examples/vector/iteration.rs"
 
+[[example]]
+name = "stack_basic_usage"
+path = "examples/stack/basic_usage.rs"
+
+[[example]]
+name = "stack_iteration"
+path = "examples/stack/iteration.rs"
+
 # The benchmark is a hand-rolled, dependency-free harness rather than a
 # libtest/criterion benchmark, so the default harness is disabled. See
 # `benches/vector/main.rs` for what it does and does not claim. Benchmarks are
