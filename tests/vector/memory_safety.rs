@@ -4,8 +4,7 @@
 
 use rust_stl::collections::vector::Vector;
 
-mod common;
-use common::{DropCounter, DropTracker, DropZst, PanicOnClone, zst_drops};
+use crate::common::{DropCounter, DropTracker, DropZst, PanicOnClone, zst_drops};
 
 /// Builds a vector of `n` `DropCounter`s with ids `0..n`.
 fn counted(n: i32, tracker: &DropTracker) -> Vector<DropCounter> {

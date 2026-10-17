@@ -2,8 +2,7 @@
 
 use rust_stl::collections::vector::Vector;
 
-mod common;
-use common::DropTracker;
+use crate::common::{self, DropTracker};
 
 fn sample() -> Vector<i32> {
     (0..5).collect()

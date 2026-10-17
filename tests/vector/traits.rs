@@ -3,8 +3,7 @@
 use rust_stl::collections::vector::Vector;
 use std::fmt::Debug;
 
-mod common;
-use common::DropTracker;
+use crate::common::{self, DropTracker};
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 struct Point {

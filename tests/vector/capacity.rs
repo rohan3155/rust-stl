@@ -6,8 +6,7 @@
 
 use rust_stl::collections::vector::Vector;
 
-mod common;
-use common::DropTracker;
+use crate::common::{self, DropTracker};
 
 #[test]
 fn reserve_provides_at_least_the_requested_additional_capacity() {

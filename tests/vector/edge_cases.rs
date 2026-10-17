@@ -3,8 +3,7 @@
 
 use rust_stl::collections::vector::Vector;
 
-mod common;
-use common::DropTracker;
+use crate::common::{self, DropTracker};
 
 /// A distinct zero-sized type used to make sure the implementation does not
 /// special-case `()` alone.
