@@ -45,6 +45,9 @@ impl<T> Stack<T> {
     pub fn swap(&mut self, other: &mut Self) {
         std::mem::swap(self, other);
     }
+    pub fn capacity(&self) -> usize {
+        self.data.capacity()
+    }
 }
 
 impl<T> Default for Stack<T> {
