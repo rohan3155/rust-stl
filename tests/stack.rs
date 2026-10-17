@@ -18,3 +18,6 @@ mod edge_cases;
 
 #[path = "stack/memory_safety.rs"]
 mod memory_safety;
+
+#[path = "stack/traits.rs"]
+mod traits;
