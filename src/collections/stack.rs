@@ -1,6 +1,7 @@
 use crate::collections::vector::Vector;
 use crate::collections::vector::VectorIntoIter;
 use crate::collections::vector::VectorIter;
+use crate::collections::vector::VectorIterMut;
 use std::fmt::Debug;
 use std::iter::Extend;
 use std::iter::FromIterator;
@@ -136,5 +137,14 @@ impl<'a, T> IntoIterator for &'a Stack<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.data.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut Stack<T> {
+    type Item = &'a mut T;
+    type IntoIter = VectorIterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter_mut()
     }
 }
