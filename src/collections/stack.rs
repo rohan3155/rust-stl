@@ -91,3 +91,14 @@ where
         }
     }
 }
+
+impl<T> PartialEq for Stack<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
+
+impl<T> Eq for Stack<T> where T: Eq {}
