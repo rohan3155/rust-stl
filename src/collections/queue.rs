@@ -89,6 +89,9 @@ impl<T> Queue<T> {
     pub fn retain<F>(&mut self, f: F) where F: FnMut(&T) -> bool {
         self.data.retain(f);
     }
+    pub fn append(&mut self, other: &mut Queue<T>) {
+        self.data.append(&mut other.data);
+    }
 }
 
 impl<T> Default for Queue<T> {
