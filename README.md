@@ -276,6 +276,32 @@ assert_eq!(stack.pop(), Some(2));
 assert_eq!(stack.len(), 1);
 ```
 
+### Stacks: ownership and drop semantics
+
+`pop` moves ownership of the top element to the caller. The stack stops
+owning that value and will not drop it, even when the stack itself is later
+destroyed. Elements still inside the stack are dropped exactly once when the
+stack goes out of scope.
+
+```rust
+use rust_stl::collections::stack::Stack;
+
+let mut stack: Stack<String> = Stack::new();
+stack.push("bottom".to_string());
+stack.push("top".to_string());
+
+// Ownership of "top" transfers to `popped`; the stack no longer holds it.
+let popped = stack.pop().expect("a value");
+assert_eq!(popped, "top");
+assert_eq!(stack.len(), 1);
+
+// Dropping `popped` destroys that value now, not when the stack drops.
+drop(popped);
+
+// The remaining element is destroyed exactly once when the stack is dropped.
+drop(stack);
+```
+
 ### Stacks: iterating, collecting and traits
 
 ```rust
