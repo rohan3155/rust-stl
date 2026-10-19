@@ -126,3 +126,26 @@ impl<T> FromIterator<T> for Queue<T> {
         q
     }
 }
+impl<T> IntoIterator for Queue<T> {
+    type Item = T;
+    type IntoIter = VectorIntoIter<T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a Queue<T> {
+    type Item = &'a T;
+    type IntoIter = VectorIter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut Queue<T> {
+    type Item = &'a mut T;
+    type IntoIter = VectorIterMut<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.data.iter_mut()
+    }
+}
