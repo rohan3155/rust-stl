@@ -1,6 +1,6 @@
 [package]
 name = "rust-stl"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.85"
 
@@ -9,7 +9,13 @@ documentation = "https://docs.rs/rust-stl"
 repository = "https://github.com/rohan3155/rust-stl"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
-keywords = ["collections", "vector", "stack", "data-structures", "no-dependencies"]
+keywords = [
+  "collections",
+  "vector",
+  "stack",
+  "data-structures",
+  "no-dependencies",
+]
 categories = ["data-structures", "algorithms"]
 
 # The crate is intentionally dependency-free. Anything added here needs a clear
