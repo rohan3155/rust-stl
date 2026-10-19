@@ -624,3 +624,18 @@ fn begin_and_end_expose_the_initialized_range() {
     assert!(!empty.begin().is_null());
     assert_eq!(empty.begin(), empty.end());
 }
+
+#[test]
+fn push_back_push_front_pop_back_pop_front() {
+    let mut v: Vector<i32> = Vector::new();
+    v.push_back(2);
+    v.push_front(1);
+    v.push_back(3);
+    assert_eq!(v.as_slice(), &[1, 2, 3]);
+    assert_eq!(v.pop_front(), Some(1));
+    assert_eq!(v.pop_back(), Some(3));
+    assert_eq!(v.as_slice(), &[2]);
+    assert_eq!(v.pop_front(), Some(2));
+    assert_eq!(v.pop_front(), None);
+    assert_eq!(v.pop_back(), None);
+}
