@@ -101,3 +101,20 @@ where
         Self { data: self.data.clone() }
     }
 }
+
+impl<T> PartialEq for Queue<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.data == other.data
+    }
+}
+
+impl<T> Eq for Queue<T> where T: Eq {}
+
+impl<T> Extend<T> for Queue<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        self.data.extend(iter);
+    }
+}
