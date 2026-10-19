@@ -80,7 +80,12 @@ impl<T> Queue<T> {
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), &'static str> {
         self.data.try_reserve(additional)
     }
-
+    pub fn iter(&self) -> VectorIter<'_, T> {
+        self.data.iter()
+    }
+    pub fn iter_mut(&mut self) -> VectorIterMut<'_, T> {
+        self.data.iter_mut()
+    }
 }
 
 impl<T> Default for Queue<T> {
@@ -89,28 +94,19 @@ impl<T> Default for Queue<T> {
     }
 }
 
-impl<T> Debug for Queue<T>
-where
-    T: Debug,
-{
+impl<T> Debug for Queue<T> where T: Debug {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_list().entries(self.data.iter()).finish()
     }
 }
 
-impl<T> Clone for Queue<T>
-where
-    T: Clone,
-{
+impl<T> Clone for Queue<T> where T: Clone {
     fn clone(&self) -> Self {
         Self { data: self.data.clone() }
     }
 }
 
-impl<T> PartialEq for Queue<T>
-where
-    T: PartialEq,
-{
+impl<T> PartialEq for Queue<T> where T: PartialEq {
     fn eq(&self, other: &Self) -> bool {
         self.data == other.data
     }
