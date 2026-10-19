@@ -59,3 +59,16 @@ harness = false
 name = "stack"
 path = "benches/stack/main.rs"
 harness = false
+
+[[example]]
+name = "queue_basic_usage"
+path = "examples/queue/basic_usage.rs"
+
+[[example]]
+name = "queue_iteration"
+path = "examples/queue/iteration.rs"
+
+[[bench]]
+name = "queue"
+path = "benches/queue/main.rs"
+harness = false
