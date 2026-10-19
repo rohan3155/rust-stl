@@ -86,6 +86,9 @@ impl<T> Queue<T> {
     pub fn iter_mut(&mut self) -> VectorIterMut<'_, T> {
         self.data.iter_mut()
     }
+    pub fn retain<F>(&mut self, f: F) where F: FnMut(&T) -> bool {
+        self.data.retain(f);
+    }
 }
 
 impl<T> Default for Queue<T> {
