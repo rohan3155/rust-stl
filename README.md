@@ -4,11 +4,13 @@ An educational, dependency-free reimplementation of classic STL-style
 containers in Rust, written with raw pointers and manual allocation so the
 memory-management machinery is visible instead of hidden.
 
-The crate currently provides two containers:
+The crate currently provides three containers:
 
 * **`Vector<T>`**, a growable, contiguous, heap-allocated array; and
 * **`Stack<T>`**, a last-in, first-out (LIFO) stack that reuses `Vector<T>` as
   its backing storage rather than duplicating any memory-management code.
+* **`Queue<T>`**, a first-in, first-out (FIFO) queue that reuses `Vector<T>` as
+  its backing storage.
 
 ## Status and maturity
 
@@ -49,6 +51,17 @@ The crate currently provides two containers:
 * A LIFO stack: `push`, `pop`, `top`, `top_mut`, `len`, `is_empty`, `clear`.
 * Capacity control: `with_capacity`, `capacity`, `reserve`, `reserve_exact`,
   `shrink_to_fit`.
+* `Debug`, `Clone`, `PartialEq`/`Eq`, `Default`, `Extend`, `FromIterator` and all
+  three `IntoIterator` forms.
+* Backed by `Vector<T>`, so it inherits the vector's allocation strategy and
+  zero-sized-type handling without reimplementing any of it.
+
+### `Queue<T>`
+
+* A FIFO queue: `enqueue`, `dequeue`, `front`/`front_mut`, `back`/`back_mut`,
+  `peek`/`peek_mut`, `len`, `is_empty`, `clear`.
+* Capacity control: `with_capacity`, `capacity`, `reserve`, `reserve_exact`,
+  `shrink_to_fit`, and the fallible `try_reserve` / `try_reserve_exact`.
 * `Debug`, `Clone`, `PartialEq`/`Eq`, `Default`, `Extend`, `FromIterator` and all
   three `IntoIterator` forms.
 * Backed by `Vector<T>`, so it inherits the vector's allocation strategy and
@@ -127,7 +140,43 @@ assert_eq!(history.pop(), Some("first".to_string()));
 assert_eq!(history.pop(), None);
 ```
 
+And a first look at the queue:
+
+```rust
+use rust_stl::collections::queue::Queue;
+
+let mut queue: Queue<String> = Queue::new();
+queue.enqueue("first".to_string());
+queue.enqueue("second".to_string());
+
+// The oldest enqueue is at the front.
+assert_eq!(queue.front(), Some(&"first".to_string()));
+
+// Dequeuing is first-in, first-out; an empty queue yields `None`, never a panic.
+assert_eq!(queue.dequeue(), Some("first".to_string()));
+assert_eq!(queue.dequeue(), Some("second".to_string()));
+assert_eq!(queue.dequeue(), None);
+```
+
 ## API examples
+
+### Queue basics
+
+```rust
+use rust_stl::collections::queue::Queue;
+
+let mut queue: Queue<i32> = Queue::new();
+queue.enqueue(1);
+queue.enqueue(2);
+queue.enqueue(3);
+
+assert_eq!(queue.front(), Some(&1));
+assert_eq!(queue.back(), Some(&3));
+
+assert_eq!(queue.dequeue(), Some(1));
+assert_eq!(queue.as_slice(), &[2, 3]);
+```
+
 
 ### Constructing and inserting
 
