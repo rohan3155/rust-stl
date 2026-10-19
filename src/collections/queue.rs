@@ -83,3 +83,12 @@ impl<T> Default for Queue<T> {
         Self::new()
     }
 }
+
+impl<T> Debug for Queue<T>
+where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_list().entries(self.data.iter()).finish()
+    }
+}
