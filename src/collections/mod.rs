@@ -8,6 +8,7 @@
 //! |---|---|---|
 //! | [`Vector<T>`](vector::Vector) | [`vector`] | Implemented |
 //! | [`Stack<T>`](stack::Stack) | [`stack`] | Implemented |
+//! | [`Queue<T>`](queue::Queue) | [`queue`] | Implemented |
 //!
 //! ## Status of other containers
 //!
@@ -15,6 +16,6 @@
 //! **they are not implemented**. Do not expect modules or types for them to
 //! exist.
 
+pub mod queue;
 pub mod stack;
 pub mod vector;
-pub mod queue;
