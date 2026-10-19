@@ -45,4 +45,10 @@ impl<T> Queue<T> {
     pub fn front_mut(&mut self) -> Option<&mut T> {
         self.data.get_mut(0)
     }
+    pub fn back(&self) -> Option<&T> {
+        self.data.get(self.len() - 1)
+    }
+    pub fn back_mut(&mut self) -> Option<&mut T> {
+        self.data.get_mut(self.len() - 1)
+    }
 }
