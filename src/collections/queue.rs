@@ -92,3 +92,12 @@ where
         f.debug_list().entries(self.data.iter()).finish()
     }
 }
+
+impl<T> Clone for Queue<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self { data: self.data.clone() }
+    }
+}
