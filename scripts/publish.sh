@@ -22,10 +22,10 @@ for arg in "$@"; do
 done
 
 ./scripts/validate.sh
-cargo publish --dry-run --locked "${args[@]}"
+cargo publish --dry-run --locked ${args[@]+"${args[@]}"}
 
 if [[ "$publish" == "true" ]]; then
-    cargo publish --locked "${args[@]}"
+    cargo publish --locked ${args[@]+"${args[@]}"}
 else
     echo "Dry run completed successfully. Re-run with --publish to publish for real."
 fi
