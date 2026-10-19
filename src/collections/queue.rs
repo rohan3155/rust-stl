@@ -51,4 +51,7 @@ impl<T> Queue<T> {
     pub fn back_mut(&mut self) -> Option<&mut T> {
         self.data.get_mut(self.len() - 1)
     }
+    pub fn capacity(&self) -> usize {
+        self.data.capacity()
+    }
 }
