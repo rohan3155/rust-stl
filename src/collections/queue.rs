@@ -39,4 +39,10 @@ impl<T> Queue<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Queue { data: Vector::with_capacity(capacity) }
     }
+    pub fn front(&self) -> Option<&T> {
+        self.data.get(0)
+    }
+    pub fn front_mut(&mut self) -> Option<&mut T> {
+        self.data.get_mut(0)
+    }
 }
