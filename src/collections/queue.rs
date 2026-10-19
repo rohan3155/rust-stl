@@ -21,4 +21,12 @@ impl<T> Queue<T> {
     pub fn len(&self) -> usize {
         self.data.len()
     }
+
+    pub fn enqueue(&mut self, item: T) {
+        self.data.push_back(item);
+    }
+
+    pub fn dequeue(&mut self) -> Option<T> {
+        if self.is_empty() { None } else { Some(self.data.remove(0)) }
+    }
 }
