@@ -28,7 +28,7 @@ The crate currently provides two containers:
 ### `Vector<T>`
 
 * `Vector<T>` with indexing (`vector[i]`, including ranges like `vector[1..3]`),
-  `get`/`get_mut`, `first`/`last`, `push`/`pop`, `insert`/`remove`/
+  `get`/`get_mut`, `first`/`last`, `push`/`pop`, `push_back`/`push_front`, `pop_back`/`pop_front`, `insert`/`remove`/
   `swap_remove`, `clear`/`truncate`.
 * Capacity control: `reserve`, `reserve_exact`, `shrink_to_fit`, and the
   fallible `try_reserve` / `try_reserve_exact`.
