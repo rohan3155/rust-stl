@@ -67,4 +67,10 @@ impl<T> Queue<T> {
     pub fn shrink_to_fit(&mut self) {
         self.data.shrink_to_fit();
     }
+    pub fn get(&self, index: usize) -> Option<&T> {
+        self.data.get(index)
+    }
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        self.data.get_mut(index)
+    }
 }
