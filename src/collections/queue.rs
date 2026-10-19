@@ -57,4 +57,8 @@ impl<T> Queue<T> {
     pub fn clear(&mut self) {
         self.data.clear();
     }
+
+    pub fn reserve(&mut self, additional: usize) {
+        self.data.reserve(additional);
+    }
 }
