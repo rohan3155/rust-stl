@@ -54,4 +54,7 @@ impl<T> Queue<T> {
     pub fn capacity(&self) -> usize {
         self.data.capacity()
     }
+    pub fn clear(&mut self) {
+        self.data.clear();
+    }
 }
