@@ -173,6 +173,17 @@ impl<T> Vector<T> {
         self.len
     }
 
+    /// Sets the logical length without dropping or initialising any elements.
+    ///
+    /// This is a crate-internal escape hatch used by adaptors (such as the
+    /// queue) that manage a prefix of dead slots themselves. The caller
+    /// promises that the first `new_len` slots of the allocation are
+    /// initialised and that any slots being removed have already been moved
+    /// out or were never initialised.
+    pub(crate) unsafe fn set_len(&mut self, new_len: usize) {
+        self.len = new_len;
+    }
+
     /// Returns the number of elements the vector can hold without reallocating.
     ///
     /// This is O(1) and is an implementation detail: it is always `>= len`, but
