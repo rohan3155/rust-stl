@@ -29,4 +29,7 @@ impl<T> Queue<T> {
     pub fn dequeue(&mut self) -> Option<T> {
         if self.is_empty() { None } else { Some(self.data.remove(0)) }
     }
+    pub fn peek(&self) -> Option<&T> {
+        self.data.get(0)
+    }
 }
