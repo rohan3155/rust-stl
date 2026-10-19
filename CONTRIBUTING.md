@@ -139,3 +139,76 @@ reported privately instead — see [SECURITY.md](SECURITY.md).
 By contributing, you agree that your contribution is dual licensed under the
 [MIT](LICENSE-MIT) and [Apache-2.0](LICENSE-APACHE) licenses, at the user's
 option, without any additional terms or conditions.
+
+## Git hooks and local validation
+
+Install the repository-local hooks once per clone:
+
+```sh
+./scripts/install-hooks.sh
+```
+
+This sets `core.hooksPath` locally (it does not touch global Git configuration)
+and makes the scripts executable. Verify with:
+
+```sh
+git config --local --get core.hooksPath
+test -x .githooks/pre-push && echo "pre-push hook executable"
+```
+
+The pre-commit hook runs only the fast formatting check:
+
+```sh
+cargo fmt --all -- --check
+```
+
+The pre-push hook runs the full validation script:
+
+```sh
+./scripts/validate.sh
+```
+
+That script runs, in order:
+
+1. `cargo fmt --all -- --check`
+2. `cargo test --all-targets --all-features`
+3. `cargo test --doc --all-features`
+4. `cargo clippy --all-targets --all-features -- -D warnings`
+5. `cargo doc --no-deps --all-features`
+6. `cargo package --locked`
+
+To validate manually at any time:
+
+```sh
+./scripts/validate.sh
+```
+
+## Publishing
+
+Do not call `cargo publish` directly. Use the wrapper so validation and the
+dry run always happen first:
+
+```sh
+./scripts/publish.sh          # validation + dry run only
+./scripts/publish.sh --publish # validation + dry run + real publish
+```
+
+Pass registry or package-selection arguments through unchanged, for example:
+
+```sh
+./scripts/publish.sh --registry my-registry --publish
+```
+
+The wrapper never uses `--no-verify` or `--allow-dirty` and never publishes
+automatically during a Git push. GitHub Actions runs the same essential checks
+on pushes and pull requests but does not publish.
+
+## Troubleshooting failed checks
+
+- Formatting: run `cargo fmt --all` and review the diff.
+- Tests: run the failing target directly, for example
+  `cargo test --test vector` or `cargo test --doc`.
+- Clippy: address the reported lint; do not add `#[allow(...)]`.
+- Documentation: run `cargo doc --no-deps --all-features` and inspect warnings.
+- Packaging: ensure the working tree is clean and `Cargo.lock` is up to date;
+  `cargo package --locked` refuses dirty trees by design.

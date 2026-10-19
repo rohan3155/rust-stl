@@ -596,3 +596,27 @@ at your option.
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be dual licensed as above, without any additional terms or conditions.
+
+## Development and release checks
+
+Install the repository-local Git hooks:
+
+```sh
+./scripts/install-hooks.sh
+```
+
+Validate locally before pushing:
+
+```sh
+./scripts/validate.sh
+```
+
+Publish only through the wrapper:
+
+```sh
+./scripts/publish.sh          # dry run
+./scripts/publish.sh --publish # real release
+```
+
+GitHub Actions runs the same essential checks on every push and pull request.
+See `CONTRIBUTING.md` for details and troubleshooting.

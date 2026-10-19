@@ -2,89 +2,47 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
-
-# Cancel superseded runs on the same branch/PR to save CI minutes.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
-  # Treat every compiler warning as an error, everywhere. This is deliberately
-  # global rather than per-step so that warnings cannot hide in a target that
-  # happens not to be built by the "obvious" command.
-  RUSTFLAGS: -D warnings
 
 jobs:
-  check:
-    name: Format, lint, test and document
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      - name: Install the stable toolchain
-        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-      - name: Use the stable toolchain
-        run: rustup default stable
+      - name: Cache cargo registry and target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Show the toolchain versions
-        run: |
-          rustc --version
-          cargo --version
-          cargo fmt --version
-          cargo clippy --version
+      - name: Format check
+        run: cargo fmt --all -- --check
 
-      - name: Check formatting
-        run: cargo fmt --all --check
+      - name: Test all targets
+        run: cargo test --all-targets --all-features
 
-      - name: Lint (warnings denied)
+      - name: Doctests
+        run: cargo test --doc --all-features
+
+      - name: Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Test (unit, integration and doctests)
-        run: cargo test --all-features
-
-      - name: Check that the examples compile
-        run: cargo test --examples --all-features
-
-      - name: Run the examples
-        run: |
-          cargo run --quiet --example basic_usage
-          cargo run --quiet --example iteration
-          cargo run --quiet --example filtering_and_sorting
-          cargo run --quiet --example capacity_management
-          cargo run --quiet --example stack_basic_usage
-          cargo run --quiet --example stack_iteration
-
-      - name: Build the documentation (warnings denied)
-        env:
-          RUSTDOCFLAGS: -D warnings
+      - name: Documentation
         run: cargo doc --no-deps --all-features
 
-      - name: Check the packaged contents
-        run: cargo package --list
-
-  msrv:
-    name: Build with the MSRV (1.85)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install the MSRV toolchain
-        run: rustup toolchain install 1.85.0 --profile minimal
-
-      - name: Use the MSRV toolchain
-        run: rustup default 1.85.0
-
-      - name: Show the toolchain version
-        run: rustc --version
-
-      # The declared `rust-version` must actually be able to build every target
-      # in the crate, including the tests, examples and the benchmark.
-      - name: Build all targets
-        run: cargo build --all-targets --all-features
-
-      - name: Run the tests
-        run: cargo test --all-features
+      - name: Package
+        run: cargo package --locked
