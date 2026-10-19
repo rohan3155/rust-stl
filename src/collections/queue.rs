@@ -36,4 +36,7 @@ impl<T> Queue<T> {
     pub fn peek_mut(&mut self) -> Option<&mut T> {
         self.data.get_mut(0)
     }
+    pub fn with_capacity(capacity: usize) -> Self {
+        Queue { data: Vector::with_capacity(capacity) }
+    }
 }
