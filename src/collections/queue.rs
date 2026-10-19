@@ -77,3 +77,9 @@ impl<T> Queue<T> {
         self.data.as_slice()
     }
 }
+
+impl<T> Default for Queue<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
