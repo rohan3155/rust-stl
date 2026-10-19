@@ -421,6 +421,48 @@ impl<T> Vector<T> {
         Some(self.remove(self.len - 1))
     }
 
+    /// Appends `value` to the back of the vector. This is an alias for
+    /// [`push`](Self::push).
+    ///
+    /// # Complexity
+    ///
+    /// O(1) amortized.
+    pub fn push_back(&mut self, value: T) {
+        self.push(value);
+    }
+
+    /// Prepends `value` to the front of the vector, shifting every existing
+    /// element one position to the right.
+    ///
+    /// This is O(`len`).
+    ///
+    /// # Panics
+    ///
+    /// Panics if the additional element would overflow the vector's maximum
+    /// length.
+    pub fn push_front(&mut self, value: T) {
+        self.insert(0, value);
+    }
+
+    /// Removes and returns the last element, or `None` if the vector is empty.
+    /// This is an alias for [`pop`](Self::pop).
+    ///
+    /// This is O(1) and does not release capacity.
+    pub fn pop_back(&mut self) -> Option<T> {
+        self.pop()
+    }
+
+    /// Removes and returns the first element, or `None` if the vector is empty.
+    ///
+    /// This is O(`len`) because every remaining element shifts one position to
+    /// the left.
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+        Some(self.remove(0))
+    }
+
     /// Returns the index of the first element for which `predicate` returns
     /// `true`, or `None` if no element matches.
     ///
