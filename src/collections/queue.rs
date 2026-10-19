@@ -118,3 +118,11 @@ impl<T> Extend<T> for Queue<T> {
         self.data.extend(iter);
     }
 }
+
+impl<T> FromIterator<T> for Queue<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut q = Queue::new();
+        q.extend(iter);
+        q
+    }
+}
