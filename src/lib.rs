@@ -21,6 +21,7 @@
 //! |---|---|---|
 //! | [`Vector<T>`](collections::vector::Vector) | [`collections::vector`] | Growable, contiguous, heap-allocated array |
 //! | [`Stack<T>`](collections::stack::Stack) | [`collections::stack`] | Last-in, first-out (LIFO) stack backed by a `Vector` |
+//! | [`Queue<T>`](collections::queue::Queue) | [`collections::queue`] | First-in, first-out (FIFO) queue backed by a `Vector` |
 //!
 //! These two containers are the implemented API today; the other containers
 //! listed in the repository's roadmap do not exist yet and are not part of this
@@ -76,6 +77,8 @@
 //!   * [`collections::vector`] — [`Vector<T>`](collections::vector::Vector) and
 //!     its iterators.
 //!   * [`collections::stack`] — [`Stack<T>`](collections::stack::Stack), a LIFO
+//!     adaptor over `Vector`.
+//!   * [`collections::queue`] — [`Queue<T>`](collections::queue::Queue), a FIFO
 //!     adaptor over `Vector`.
 
 pub mod collections;
