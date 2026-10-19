@@ -76,6 +76,11 @@ impl<T> Queue<T> {
     pub fn as_slice(&self) -> &[T] {
         self.data.as_slice()
     }
+
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), &'static str> {
+        self.data.try_reserve(additional)
+    }
+
 }
 
 impl<T> Default for Queue<T> {
