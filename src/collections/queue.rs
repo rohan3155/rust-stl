@@ -73,4 +73,7 @@ impl<T> Queue<T> {
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
         self.data.get_mut(index)
     }
+    pub fn as_slice(&self) -> &[T] {
+        self.data.as_slice()
+    }
 }
