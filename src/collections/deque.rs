@@ -56,4 +56,20 @@ impl<T> Deque<T> {
             self.data.get_mut(self.head)
         }
     }
+    pub fn back(&self) -> Option<&T> {
+        if self.is_empty() {
+            None
+        } else {
+            let len = self.data.len();
+            self.data.get(len - 1)
+        }
+    }
+    pub fn back_mut(&mut self) -> Option<&mut T> {
+        if self.is_empty() {
+            None
+        } else {
+            let len = self.data.len();
+            self.data.get_mut(len - 1)
+        }
+    }
 }
