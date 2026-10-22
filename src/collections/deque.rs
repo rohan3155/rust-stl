@@ -102,4 +102,10 @@ impl<T> Deque<T> {
         }
         self.data.truncate(new_len);
     }
+    pub fn as_slice(&self) -> &[T] {
+        self.data.as_slice()
+    }
+    pub fn as_mut_slice(&mut self) -> &mut [T] {
+        self.data.as_mut_slice()
+    }
 }
