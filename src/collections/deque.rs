@@ -42,4 +42,18 @@ impl<T> Deque<T> {
             self.data.pop_back()
         }
     }
+    pub fn front(&self) -> Option<&T> {
+        if self.is_empty() {
+            None
+        } else {
+            self.data.get(self.head)
+        }
+    }
+    pub fn front_mut(&mut self) -> Option<&mut T> {
+        if self.is_empty() {
+            None
+        } else {
+            self.data.get_mut(self.head)
+        }
+    }
 }
