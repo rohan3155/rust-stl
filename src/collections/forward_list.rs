@@ -105,33 +105,6 @@ impl<T> ForwardList<T> {
         current.next = Some(new_node);
         self.len += 1;
     }
-    pub fn insert_after(&mut self, index: usize, value: T) {
-        if index > self.len {
-            panic!("index out of bounds");
-        }
-
-        if index == 0 {
-            self.push_front(value);
-            return;
-        }
-
-        if index == self.len {
-            self.push_back(value);
-            return;
-        }
-
-        let mut current = self.head.as_mut().unwrap();
-
-        for _ in 0..index - 1 {
-            current = current.next.as_mut().unwrap();
-        }
-
-        let mut new_node = Box::new(Node::new(value));
-        new_node.next = current.next.take();
-        current.next = Some(new_node);
-        self.len += 1;
-    }
-
     pub fn remove(&mut self, index: usize) -> Option<T> {
         if index >= self.len {
             return None;
@@ -192,16 +165,17 @@ impl<T> ForwardList<T> {
         self.clear();
     }
     pub fn reverse(&mut self) {
+        let mut prev = None;
         let mut current = self.head.take();
-        let mut next = None;
 
         while let Some(mut node) = current {
-            next = node.next.take();
-            node.next = next.take();
+            let next = node.next.take();
+            node.next = prev;
+            prev = Some(node);
             current = next;
         }
 
-        self.head = current;
+        self.head = prev;
     }
     pub fn retain<F>(&mut self, mut predicate: F)
     where
@@ -226,6 +200,181 @@ impl<T> ForwardList<T> {
             }
         }
     }
+
+    /// Returns a cursor to the sentinel position before the first element.
+    ///
+    /// This mirrors `std::forward_list::before_begin`: inserting after this
+    /// cursor places the new element at the front of the list.
+    pub fn before_begin(&self) -> Cursor {
+        Cursor { pos: 0 }
+    }
+
+    /// Inserts `value` after the element referenced by `pos`.
+    ///
+    /// `pos` may be the sentinel returned by [`before_begin`](Self::before_begin),
+    /// in which case the value becomes the new first element. Returns a cursor
+    /// to the newly inserted element.
+    pub fn insert_after(&mut self, pos: Cursor, value: T) -> Cursor {
+        if pos.pos == 0 {
+            self.push_front(value);
+            return Cursor { pos: 1 };
+        }
+
+        if pos.pos >= self.len {
+            self.push_back(value);
+            return Cursor { pos: self.len };
+        }
+
+        let mut current = self.head.as_mut().unwrap();
+        for _ in 0..pos.pos - 1 {
+            current = current.next.as_mut().unwrap();
+        }
+
+        let mut new_node = Box::new(Node::new(value));
+        new_node.next = current.next.take();
+        current.next = Some(new_node);
+        self.len += 1;
+
+        Cursor { pos: pos.pos + 1 }
+    }
+
+    /// Removes the element after the one referenced by `pos`.
+    ///
+    /// Passing the sentinel from [`before_begin`](Self::before_begin) removes the
+    /// first element. Returns the removed value, or `None` if there is no
+    /// element after `pos`.
+    pub fn erase_after(&mut self, pos: Cursor) -> Option<T> {
+        if pos.pos == 0 {
+            return self.pop_front();
+        }
+
+        if pos.pos >= self.len {
+            return None;
+        }
+
+        let mut current = self.head.as_mut()?;
+        for _ in 0..pos.pos - 1 {
+            current = current.next.as_mut()?;
+        }
+
+        let mut removed = current.next.take()?;
+        current.next = removed.next.take();
+        self.len -= 1;
+
+        Some(removed.value)
+    }
+
+    /// Moves every element of `other` so that they follow the element referenced
+    /// by `pos` in `self`.
+    pub fn splice_after(&mut self, pos: Cursor, other: &mut Self) {
+        if other.is_empty() {
+            return;
+        }
+
+        if pos.pos == 0 {
+            if self.is_empty() {
+                self.head = other.head.take();
+            } else {
+                let mut tail = other.head.as_mut().unwrap();
+                while tail.next.is_some() {
+                    tail = tail.next.as_mut().unwrap();
+                }
+                tail.next = self.head.take();
+                self.head = other.head.take();
+            }
+        } else {
+            if pos.pos >= self.len {
+                // Append at the end.
+                self.append(other);
+                return;
+            }
+
+            let mut current = self.head.as_mut().unwrap();
+            for _ in 0..pos.pos - 1 {
+                current = current.next.as_mut().unwrap();
+            }
+
+            let mut tail = other.head.as_mut().unwrap();
+            while tail.next.is_some() {
+                tail = tail.next.as_mut().unwrap();
+            }
+            tail.next = current.next.take();
+            current.next = other.head.take();
+        }
+
+        self.len += other.len;
+        other.len = 0;
+    }
+
+    /// Moves every element of `other` to the back of `self`.
+    pub fn append(&mut self, other: &mut Self) {
+        if other.is_empty() {
+            return;
+        }
+
+        if self.is_empty() {
+            self.head = other.head.take();
+        } else {
+            let mut tail = self.head.as_mut().unwrap();
+            while tail.next.is_some() {
+                tail = tail.next.as_mut().unwrap();
+            }
+            tail.next = other.head.take();
+        }
+
+        self.len += other.len;
+        other.len = 0;
+    }
+
+    /// Shrinks the list to `new_len` elements.
+    fn shrink(&mut self, new_len: usize) {
+        if new_len == 0 {
+            self.clear();
+            return;
+        }
+
+        let mut current = self.head.as_mut().unwrap();
+
+        for _ in 1..new_len {
+            current = current.next.as_mut().unwrap();
+        }
+
+        current.next = None;
+        self.len = new_len;
+    }
+
+    /// Grows the list to `new_len` elements by cloning `value`.
+    fn grow(&mut self, new_len: usize, value: T)
+    where
+        T: Clone,
+    {
+        for _ in self.len..new_len {
+            self.push_back(value.clone());
+        }
+    }
+
+    /// Resizes the list to `new_len` elements, filling new slots with clones of
+    /// `value` when growing.
+    pub fn resize(&mut self, new_len: usize, value: T)
+    where
+        T: Clone,
+    {
+        if new_len < self.len {
+            self.shrink(new_len);
+        } else if new_len > self.len {
+            self.grow(new_len, value);
+        }
+    }
+}
+
+/// A cursor into a [`ForwardList`].
+///
+/// Position `0` is the sentinel before the first element; position `n`
+/// refers to the `n`-th element (1-based). The cursor is a lightweight,
+/// copyable handle rather than a borrow of the list.
+#[derive(Clone, Copy)]
+pub struct Cursor {
+    pos: usize,
 }
 
 impl<T> Default for ForwardList<T> {
