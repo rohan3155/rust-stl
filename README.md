@@ -4,21 +4,23 @@ An educational, dependency-free reimplementation of classic STL-style
 containers in Rust, written with raw pointers and manual allocation so the
 memory-management machinery is visible instead of hidden.
 
-The crate currently provides three containers:
+The crate currently provides four containers:
 
 * **`Vector<T>`**, a growable, contiguous, heap-allocated array; and
 * **`Stack<T>`**, a last-in, first-out (LIFO) stack that reuses `Vector<T>` as
   its backing storage rather than duplicating any memory-management code.
 * **`Queue<T>`**, a first-in, first-out (FIFO) queue that reuses `Vector<T>` as
   its backing storage.
+* **`Deque<T>`**, a double-ended queue that reuses `Vector<T>` as its backing
+  storage.
 
 ## Status and maturity
 
 **Development-ready, not published.**
 
-* `Vector<T>` and `Stack<T>` are implemented and covered by an extensive test
-  suite, including exact destructor-count, panic-safety and zero-sized-type
-  tests.
+* `Vector<T>`, `Stack<T>`, `Queue<T>` and `Deque<T>` are implemented and
+  covered by an extensive test suite, including exact destructor-count,
+  panic-safety and zero-sized-type tests.
 * The crate has **not** been published to crates.io.
 * It ships only a small sanity micro-benchmark, not a rigorous benchmark. No
   performance claims are made anywhere in this repository.
