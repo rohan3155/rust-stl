@@ -37,7 +37,7 @@ fn size_hint() {
     d.pop_front();
     let it = d.iter();
     assert_eq!(it.size_hint(), (4, Some(4)));
-    let mut it = d.into_iter();
+    let it = d.into_iter();
     assert_eq!(it.size_hint(), (4, Some(4)));
 }
 

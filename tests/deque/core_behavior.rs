@@ -2,7 +2,7 @@ use rust_stl::collections::deque::Deque;
 
 #[test]
 fn new_deque_is_empty() {
-    let mut deque: Deque<i32> = Deque::new();
+    let deque: Deque<i32> = Deque::new();
     assert_eq!(deque.len(), 0);
     assert!(deque.is_empty());
     assert_eq!(deque.front(), None);

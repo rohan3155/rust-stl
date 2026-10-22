@@ -1,8 +1,5 @@
 use rust_stl::collections::deque::Deque;
 
-#[derive(Debug, PartialEq, Eq)]
-struct Marker;
-
 #[test]
 fn empty_deque_reads() {
     let d: Deque<i32> = Deque::new();
