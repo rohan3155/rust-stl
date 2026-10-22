@@ -13,6 +13,7 @@ The crate currently provides four containers:
   its backing storage.
 * **`Deque<T>`**, a double-ended queue that reuses `Vector<T>` as its backing
   storage.
+* **`ForwardList<T>`**, a singly linked list.
 
 ## Status and maturity
 
@@ -520,6 +521,8 @@ Each example is self-contained and runs with `cargo run --example <name>`:
 | `stack_iteration` | `examples/stack/iteration.rs` | All three iteration forms over a stack, in-place mutation, pop order via `rev`, zero-sized types |
 | `deque_basic_usage` | `examples/deque/basic_usage.rs` | Deque construction, `push_front`/`push_back`, `front`/`back`, draining, reuse |
 | `deque_iteration` | `examples/deque/iteration.rs` | All three iteration forms over a deque, in-place mutation, owned collection |
+| `forward_list_basic_usage` | `examples/forward_list/basic_usage.rs` | Construction, push/pop, insertion, removal, retain, reverse, splice, append, resize |
+| `forward_list_iteration` | `examples/forward_list/iteration.rs` | All three iteration forms over a forward list, in-place mutation |
 
 The stack examples use a `stack_` prefix because Cargo derives a target name from
 the file name, and both collections have a `basic_usage` and an `iteration`.
