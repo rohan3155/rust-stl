@@ -47,7 +47,27 @@ impl<T> ForwardList<T> {
         *current = Some(Box::new(Node::new(value)));
         self.len += 1;
     }
+    pub fn pop_back(&mut self) -> Option<T> {
+        if self.head.is_none() {
+            return None;
+        }
 
+        if self.head.as_ref().unwrap().next.is_none() {
+            self.len = 0;
+            return self.head.take().map(|node| node.value);
+        }
+
+        let mut current = self.head.as_mut().unwrap();
+
+        while current.next.as_ref().unwrap().next.is_some() {
+            current = current.next.as_mut().unwrap();
+        }
+
+        let last = current.next.take().unwrap();
+        self.len -= 1;
+
+        Some(last.value)
+    }
     pub fn len(&self) -> usize {
         self.len
     }
@@ -110,6 +130,57 @@ impl<T> ForwardList<T> {
         new_node.next = current.next.take();
         current.next = Some(new_node);
         self.len += 1;
+    }
+
+    pub fn remove(&mut self, index: usize) -> Option<T> {
+        if index >= self.len {
+            return None;
+        }
+
+        if index == 0 {
+            return self.pop_front();
+        }
+
+        if index == self.len - 1 {
+            return self.pop_back();
+        }
+
+        let mut current = self.head.as_mut()?;
+
+        for _ in 0..index - 1 {
+            current = current.next.as_mut()?;
+        }
+
+        let mut removed = current.next.take()?;
+        current.next = removed.next.take();
+        self.len -= 1;
+
+        Some(removed.value)
+    }
+    pub fn remove_after(&mut self, index: usize) -> Option<T> {
+        if index >= self.len {
+            return None;
+        }
+
+        if index == 0 {
+            return self.pop_front();
+        }
+
+        if index == self.len - 1 {
+            return self.pop_back();
+        }
+
+        let mut current = self.head.as_mut()?;
+
+        for _ in 0..index - 1 {
+            current = current.next.as_mut()?;
+        }
+
+        let mut removed = current.next.take()?;
+        current.next = removed.next.take();
+        self.len -= 1;
+
+        Some(removed.value)
     }
 }
 
