@@ -36,6 +36,10 @@ impl<T> Deque<T> {
     }
 
     pub fn pop_back(&mut self) -> Option<T> {
-        if self.is_empty() { None } else { self.data.pop_back() }
+        if self.is_empty() {
+            None
+        } else {
+            self.data.pop_back()
+        }
     }
 }
