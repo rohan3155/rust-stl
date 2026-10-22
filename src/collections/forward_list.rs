@@ -25,6 +25,12 @@ impl<T> ForwardList<T> {
         self.head = Some(node);
         self.len += 1;
     }
+    pub fn pop_front(&mut self) -> Option<T> {
+        let mut node = self.head.take()?;
+        self.head = node.next.take();
+        self.len -= 1;
+        Some(node.value)
+    }
 
     pub fn push_back(&mut self, value: T) {
         let mut current = &mut self.head;
