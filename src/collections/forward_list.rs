@@ -59,6 +59,32 @@ impl<T> ForwardList<T> {
         self.head = None;
         self.len = 0;
     }
+    pub fn insert(&mut self, index: usize, value: T) {
+        if index > self.len {
+            panic!("index out of bounds");
+        }
+
+        if index == 0 {
+            self.push_front(value);
+            return;
+        }
+
+        if index == self.len {
+            self.push_back(value);
+            return;
+        }
+
+        let mut current = self.head.as_mut().unwrap();
+
+        for _ in 0..index - 1 {
+            current = current.next.as_mut().unwrap();
+        }
+
+        let mut new_node = Box::new(Node::new(value));
+        new_node.next = current.next.take();
+        current.next = Some(new_node);
+        self.len += 1;
+    }
 }
 
 impl<T> Default for ForwardList<T> {
