@@ -82,6 +82,14 @@ path = "examples/deque/basic_usage.rs"
 name = "deque_iteration"
 path = "examples/deque/iteration.rs"
 
+[[example]]
+name = "forward_list_basic_usage"
+path = "examples/forward_list/basic_usage.rs"
+
+[[example]]
+name = "forward_list_iteration"
+path = "examples/forward_list/iteration.rs"
+
 [[bench]]
 name = "queue"
 path = "benches/queue/main.rs"
@@ -90,4 +98,9 @@ harness = false
 [[bench]]
 name = "deque"
 path = "benches/deque/main.rs"
+harness = false
+
+[[bench]]
+name = "forward_list"
+path = "benches/forward_list/main.rs"
 harness = false
