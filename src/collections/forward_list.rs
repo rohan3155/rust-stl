@@ -55,6 +55,10 @@ impl<T> ForwardList<T> {
     pub fn is_empty(&self) -> bool {
         self.head.is_none()
     }
+    pub fn clear(&mut self) {
+        self.head = None;
+        self.len = 0;
+    }
 }
 
 impl<T> Default for ForwardList<T> {
