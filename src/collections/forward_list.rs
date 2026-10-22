@@ -188,6 +188,9 @@ impl<T> ForwardList<T> {
     pub fn remove_last(&mut self) -> Option<T> {
         self.pop_back()
     }
+    pub fn remove_all(&mut self) {
+        self.clear();
+    }
 }
 
 impl<T> Default for ForwardList<T> {
