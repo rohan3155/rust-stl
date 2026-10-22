@@ -86,3 +86,8 @@ path = "examples/deque/iteration.rs"
 name = "queue"
 path = "benches/queue/main.rs"
 harness = false
+
+[[bench]]
+name = "deque"
+path = "benches/deque/main.rs"
+harness = false
