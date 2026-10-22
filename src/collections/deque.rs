@@ -17,4 +17,11 @@ impl<T> Deque<T> {
             head: 0,
         }
     }
+
+    pub fn push_front(&mut self, value: T) {
+        self.data.push_front(value);
+    }
+    pub fn push_back(&mut self, value: T) {
+        self.data.push_back(value);
+    }
 }
