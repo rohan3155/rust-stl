@@ -439,9 +439,15 @@ The repository ships small, dependency-free micro-benchmarks that run a few
 representative operations against the standard library side by side:
 
 ```sh
+cargo bench                 # run every benchmark target
 cargo bench --bench vector   # Vector<T> vs std::vec::Vec
 cargo bench --bench stack    # Stack<T>  vs std::vec::Vec used as a stack
+cargo bench --bench queue    # Queue<T> vs std::collections::VecDeque
+cargo bench --bench deque    # Deque<T> vs std::collections::VecDeque
+cargo bench --bench forward_list  # ForwardList<T> vs std::collections::LinkedList
 ```
+
+`cargo bench-all` is also available as a shortcut for `cargo bench`.
 
 Each prints the best of a handful of repetitions for each operation. They are
 sanity harnesses for spotting gross regressions while working on the
