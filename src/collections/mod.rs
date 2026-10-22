@@ -18,6 +18,7 @@
 //! exist.
 
 pub mod deque;
+pub mod forward_list;
 pub mod queue;
 pub mod stack;
 pub mod vector;
