@@ -27,4 +27,15 @@ impl<T> Deque<T> {
     pub fn is_empty(&self) -> bool {
         self.data.is_empty()
     }
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.is_empty() {
+            return None;
+        }
+
+        Some(self.data.remove(self.head))
+    }
+
+    pub fn pop_back(&mut self) -> Option<T> {
+        if self.is_empty() { None } else { self.data.pop_back() }
+    }
 }
