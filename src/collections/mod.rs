@@ -10,6 +10,7 @@
 //! | [`Stack<T>`](stack::Stack) | [`stack`] | Implemented |
 //! | [`Queue<T>`](queue::Queue) | [`queue`] | Implemented |
 //! | [`Deque<T>`](deque::Deque) | [`deque`] | Implemented |
+//! | [`ForwardList<T>`](forward_list::ForwardList) | [`forward_list`] | Implemented |
 //!
 //! ## Status of other containers
 //!
