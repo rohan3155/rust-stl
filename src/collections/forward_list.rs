@@ -203,7 +203,28 @@ impl<T> ForwardList<T> {
 
         self.head = current;
     }
-}
+    pub fn retain<F>(&mut self, mut predicate: F) where F: FnMut(&T) -> bool {
+        let mut current = &mut self.head;
+
+        loop {
+            let keep = match current.as_mut() {
+                Some(node) => predicate(&node.value),
+                None => {
+                    break;
+                }
+            };
+
+            if keep {
+                current = &mut current.as_mut().unwrap().next;
+            } else {
+                let mut removed = current.take().unwrap();
+                *current = removed.next.take();
+                self.len -= 1;
+            }
+        }
+    }
+
+  }
 
 impl<T> Default for ForwardList<T> {
     fn default() -> Self {
