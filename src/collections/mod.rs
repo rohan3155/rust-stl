@@ -16,6 +16,7 @@
 //! **they are not implemented**. Do not expect modules or types for them to
 //! exist.
 
+pub mod deque;
 pub mod queue;
 pub mod stack;
 pub mod vector;
