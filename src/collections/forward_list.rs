@@ -45,3 +45,9 @@ impl<T> ForwardList<T> {
         self.head.is_none()
     }
 }
+
+impl<T> Default for ForwardList<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
