@@ -31,7 +31,9 @@ impl<T> ForwardList<T> {
         self.len -= 1;
         Some(node.value)
     }
-
+    pub fn front(&self) -> Option<&T> {
+        self.head.as_ref().map(|node| &node.value)
+    }
     pub fn push_back(&mut self, value: T) {
         let mut current = &mut self.head;
 
