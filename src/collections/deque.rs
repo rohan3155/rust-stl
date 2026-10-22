@@ -86,4 +86,10 @@ impl<T> Deque<T> {
 
         self.data.get_mut(self.head + index)
     }
+    pub fn len(&self) -> usize {
+        self.data.len() - self.head
+    }
+    pub fn capacity(&self) -> usize {
+        self.data.capacity()
+    }
 }
