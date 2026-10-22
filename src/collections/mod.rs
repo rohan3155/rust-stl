@@ -9,6 +9,7 @@
 //! | [`Vector<T>`](vector::Vector) | [`vector`] | Implemented |
 //! | [`Stack<T>`](stack::Stack) | [`stack`] | Implemented |
 //! | [`Queue<T>`](queue::Queue) | [`queue`] | Implemented |
+//! | [`Deque<T>`](deque::Deque) | [`deque`] | Implemented |
 //!
 //! ## Status of other containers
 //!
