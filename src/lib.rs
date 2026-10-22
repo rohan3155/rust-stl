@@ -23,6 +23,7 @@
 //! | [`Stack<T>`](collections::stack::Stack) | [`collections::stack`] | Last-in, first-out (LIFO) stack backed by a `Vector` |
 //! | [`Queue<T>`](collections::queue::Queue) | [`collections::queue`] | First-in, first-out (FIFO) queue backed by a `Vector` |
 //! | [`Deque<T>`](collections::deque::Deque) | [`collections::deque`] | Double-ended queue backed by a `Vector` |
+//! | [`ForwardList<T>`](collections::forward_list::ForwardList) | [`collections::forward_list`] | Singly linked list |
 //!
 //! These two containers are the implemented API today; the other containers
 //! listed in the repository's roadmap do not exist yet and are not part of this
