@@ -24,4 +24,7 @@ impl<T> Deque<T> {
     pub fn push_back(&mut self, value: T) {
         self.data.push_back(value);
     }
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
 }
