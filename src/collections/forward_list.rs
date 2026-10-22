@@ -203,7 +203,10 @@ impl<T> ForwardList<T> {
 
         self.head = current;
     }
-    pub fn retain<F>(&mut self, mut predicate: F) where F: FnMut(&T) -> bool {
+    pub fn retain<F>(&mut self, mut predicate: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
         let mut current = &mut self.head;
 
         loop {
@@ -223,8 +226,7 @@ impl<T> ForwardList<T> {
             }
         }
     }
-
-  }
+}
 
 impl<T> Default for ForwardList<T> {
     fn default() -> Self {
