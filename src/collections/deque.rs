@@ -72,4 +72,18 @@ impl<T> Deque<T> {
             self.data.get_mut(len - 1)
         }
     }
+    pub fn get(&self, index: usize) -> Option<&T> {
+        if index >= self.data.len() {
+            return None;
+        }
+        self.data.get(self.head + index)
+    }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
+        if index >= self.data.len() {
+            return None;
+        }
+
+        self.data.get_mut(self.head + index)
+    }
 }
