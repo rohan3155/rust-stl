@@ -92,4 +92,14 @@ impl<T> Deque<T> {
     pub fn capacity(&self) -> usize {
         self.data.capacity()
     }
+    pub fn clear(&mut self) {
+        self.data.clear();
+        self.head = 0;
+    }
+    pub fn truncate(&mut self, new_len: usize) {
+        if new_len >= self.len() {
+            return;
+        }
+        self.data.truncate(new_len);
+    }
 }
