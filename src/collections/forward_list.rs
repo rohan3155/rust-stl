@@ -191,9 +191,7 @@ impl<T> ForwardList<T> {
 
     /// Removes and returns the element at the back of the list.
     pub fn pop_back(&mut self) -> Option<T> {
-        if self.head.is_none() {
-            return None;
-        }
+        self.head.as_ref()?;
 
         if self.head.as_ref().unwrap().next.is_none() {
             self.len = 0;
@@ -465,14 +463,15 @@ impl<T> ForwardList<T> {
     {
         let mut current = &mut self.head;
 
-        loop {
-            let keep = match current.as_mut() {
-                Some(node) => predicate(&node.value),
-                None => break,
+        while current.is_some() {
+            let keep = {
+                let node = current.as_mut().unwrap();
+                predicate(&node.value)
             };
 
             if keep {
-                current = &mut current.as_mut().unwrap().next;
+                let node = current.as_mut().unwrap();
+                current = &mut node.next;
             } else {
                 let mut removed = current.take().unwrap();
                 *current = removed.next.take();
