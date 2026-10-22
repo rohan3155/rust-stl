@@ -191,6 +191,18 @@ impl<T> ForwardList<T> {
     pub fn remove_all(&mut self) {
         self.clear();
     }
+    pub fn reverse(&mut self) {
+        let mut current = self.head.take();
+        let mut next = None;
+
+        while let Some(mut node) = current {
+            next = node.next.take();
+            node.next = next.take();
+            current = next;
+        }
+
+        self.head = current;
+    }
 }
 
 impl<T> Default for ForwardList<T> {
