@@ -84,6 +84,22 @@ impl<T> LinkedList<T> {
     pub fn front_mut(&mut self) -> Option<&mut T> {
         self.head.as_deref_mut().map(|node| &mut node.value)
     }
+    /// Returns a reference to the last element.
+    pub fn back(&self) -> Option<&T> {
+        let tail = self.tail?;
+        // SAFETY: The tail pointer must point to a live node owned by `head`.
+        // This invariant must be maintained by every mutating operation.
+        unsafe { Some(&tail.as_ref().value) }
+    }
+
+    /// Returns a mutable reference to the last element.
+    pub fn back_mut(&mut self) -> Option<&mut T> {
+        let mut tail = self.tail?;
+        // SAFETY: The tail pointer must point to a live node owned by `head`.
+        // The mutable borrow of `self` prevents another safe mutable access
+        // to this list for the lifetime of the returned reference.
+        unsafe { Some(&mut tail.as_mut().value) }
+    }
 }
 
 impl<T> Default for LinkedList<T> {
