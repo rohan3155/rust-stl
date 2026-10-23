@@ -74,6 +74,16 @@ impl<T> LinkedList<T> {
     pub const fn is_empty(&self) -> bool {
         self.len == 0
     }
+
+    /// Returns a reference to the first element.
+    pub fn front(&self) -> Option<&T> {
+        self.head.as_deref().map(|node| &node.value)
+    }
+
+    /// Returns a mutable reference to the first element.
+    pub fn front_mut(&mut self) -> Option<&mut T> {
+        self.head.as_deref_mut().map(|node| &mut node.value)
+    }
 }
 
 impl<T> Default for LinkedList<T> {
