@@ -12,7 +12,7 @@
 //! ```
 
 use std::fmt;
-use std::iter::{ Extend, FromIterator };
+use std::iter::{Extend, FromIterator};
 use std::ptr::NonNull;
 
 /// A node in the doubly linked list.
@@ -89,9 +89,7 @@ impl<T> LinkedList<T> {
         let tail = self.tail?;
         // SAFETY: The tail pointer must point to a live node owned by `head`.
         // This invariant must be maintained by every mutating operation.
-        unsafe {
-            Some(&tail.as_ref().value)
-        }
+        unsafe { Some(&tail.as_ref().value) }
     }
 
     /// Returns a mutable reference to the last element.
@@ -100,9 +98,7 @@ impl<T> LinkedList<T> {
         // SAFETY: The tail pointer must point to a live node owned by `head`.
         // The mutable borrow of `self` prevents another safe mutable access
         // to this list for the lifetime of the returned reference.
-        unsafe {
-            Some(&mut tail.as_mut().value)
-        }
+        unsafe { Some(&mut tail.as_mut().value) }
     }
     /// Removes all elements from the list.
     pub fn clear(&mut self) {
