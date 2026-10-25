@@ -142,6 +142,40 @@ impl<T> LinkedList<T> {
 
         self.len += 1;
     }
+    pub fn pop_back(&mut self) -> Option<T> {
+        let mut tail = self.tail?;
+
+        unsafe {
+            if let Some(mut prev) = tail.as_mut().prev {
+                prev.as_mut().next = None;
+                self.tail = Some(prev);
+            } else {
+                self.head = None;
+                self.tail = None;
+            }
+
+            self.len -= 1;
+
+            let node = *Box::from_raw(tail.as_ptr());
+            Some(node.value)
+        }
+    }
+    /// Removes the first element and returns it, or `None` if the list is empty.
+    pub fn pop_front(&mut self) -> Option<T> {
+        let mut node = self.head.take()?;
+
+        self.head = node.next.take();
+
+        if let Some(new_head) = self.head.as_mut() {
+            new_head.prev = None;
+        } else {
+            self.tail = None;
+        }
+
+        self.len -= 1;
+
+        Some(node.value)
+    }
 }
 
 impl<T> Default for LinkedList<T> {
