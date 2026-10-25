@@ -223,6 +223,55 @@ impl<T> LinkedList<T> {
 
         Some(removed.value)
     }
+    pub fn remove_first(&mut self, value: &T) -> bool
+    where
+        T: PartialEq,
+    {
+        let mut current = &mut self.head;
+
+        while let Some(node) = current {
+            if node.value == *value {
+                let mut removed = current.take().unwrap();
+                *current = removed.next.take();
+
+                if let Some(next) = current.as_mut() {
+                    next.prev = removed.prev;
+                } else {
+                    self.tail = removed.prev;
+                }
+
+                self.len -= 1;
+                return true;
+            }
+
+            current = &mut current.as_mut().unwrap().next;
+        }
+
+        false
+    }
+    pub fn remove_all(&mut self, value: T)
+    where
+        T: PartialEq,
+    {
+        let mut current = &mut self.head;
+
+        while let Some(node) = current.as_mut() {
+            if node.value == value {
+                let mut removed = current.take().unwrap();
+                *current = removed.next.take();
+
+                if let Some(next) = current.as_mut() {
+                    next.prev = removed.prev;
+                } else {
+                    self.tail = removed.prev;
+                }
+
+                self.len -= 1;
+            } else {
+                current = &mut current.as_mut().unwrap().next;
+            }
+        }
+    }
 }
 
 impl<T> Default for LinkedList<T> {
