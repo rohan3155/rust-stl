@@ -11,8 +11,6 @@
 //! assert_eq!(list.len(), 0);
 //! ```
 
-use std::fmt;
-use std::iter::{Extend, FromIterator};
 use std::ptr::NonNull;
 
 /// A node in the doubly linked list.
