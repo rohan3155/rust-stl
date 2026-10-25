@@ -106,6 +106,42 @@ impl<T> LinkedList<T> {
         self.tail = None;
         self.len = 0;
     }
+    pub fn push_back(&mut self, value: T) {
+        let mut node = Box::new(Node::new(value));
+        let node_ptr = NonNull::from(node.as_mut());
+
+        match self.tail {
+            Some(mut tail) => unsafe {
+                node.prev = Some(tail);
+                tail.as_mut().next = Some(node);
+            },
+            None => {
+                self.head = Some(node);
+            }
+        }
+
+        self.tail = Some(node_ptr);
+        self.len += 1;
+    }
+
+    pub fn push_front(&mut self, value: T) {
+        let mut node = Box::new(Node::new(value));
+        let node_ptr = NonNull::from(node.as_mut());
+
+        match self.head.take() {
+            Some(mut head) => {
+                head.prev = Some(node_ptr);
+                node.next = Some(head);
+                self.head = Some(node);
+            }
+            None => {
+                self.tail = Some(node_ptr);
+                self.head = Some(node);
+            }
+        }
+
+        self.len += 1;
+    }
 }
 
 impl<T> Default for LinkedList<T> {
