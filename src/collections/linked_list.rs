@@ -198,6 +198,31 @@ impl<T> LinkedList<T> {
         current.next = Some(new_node);
         self.len += 1;
     }
+    pub fn remove(&mut self, index: usize) -> Option<T> {
+        if index >= self.len {
+            return None;
+        }
+
+        if index == 0 {
+            return self.pop_front();
+        }
+
+        if index == self.len - 1 {
+            return self.pop_back();
+        }
+
+        let mut current = self.head.as_mut()?;
+
+        for _ in 0..index - 1 {
+            current = current.next.as_mut()?;
+        }
+
+        let mut removed = current.next.take()?;
+        current.next = removed.next.take();
+        self.len -= 1;
+
+        Some(removed.value)
+    }
 }
 
 impl<T> Default for LinkedList<T> {
