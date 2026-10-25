@@ -6,7 +6,7 @@
 //! ```
 //! use rust_stl::collections::linked_list::LinkedList;
 //!
-//! let mut list = LinkedList::new();
+//! let mut list: LinkedList<i32> = LinkedList::new();
 //! assert!(list.is_empty());
 //! assert_eq!(list.len(), 0);
 //! ```
