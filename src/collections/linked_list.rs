@@ -293,6 +293,31 @@ impl<T> LinkedList<T> {
             }
         }
     }
+    pub fn reverse(&mut self) {
+        let mut current = self.head.take();
+        let mut new_head = None;
+        let mut new_tail = None;
+
+        while let Some(mut node) = current {
+            let next = node.next.take();
+            let node_ptr = NonNull::from(node.as_mut());
+
+            node.next = new_head;
+            node.prev = next.as_deref().map(NonNull::from);
+
+            if let Some(head) = node.next.as_mut() {
+                head.prev = Some(node_ptr);
+            } else {
+                new_tail = Some(node_ptr);
+            }
+
+            new_head = Some(node);
+            current = next;
+        }
+
+        self.head = new_head;
+        self.tail = new_tail;
+    }
 }
 
 impl<T> Default for LinkedList<T> {
