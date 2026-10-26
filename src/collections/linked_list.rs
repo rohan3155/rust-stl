@@ -270,6 +270,29 @@ impl<T> LinkedList<T> {
             }
         }
     }
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&T) -> bool,
+    {
+        let mut current = &mut self.head;
+
+        while let Some(node) = current.as_mut() {
+            if !f(&node.value) {
+                let mut removed = current.take().unwrap();
+                *current = removed.next.take();
+
+                if let Some(next) = current.as_mut() {
+                    next.prev = removed.prev;
+                } else {
+                    self.tail = removed.prev;
+                }
+
+                self.len -= 1;
+            } else {
+                current = &mut current.as_mut().unwrap().next;
+            }
+        }
+    }
 }
 
 impl<T> Default for LinkedList<T> {
